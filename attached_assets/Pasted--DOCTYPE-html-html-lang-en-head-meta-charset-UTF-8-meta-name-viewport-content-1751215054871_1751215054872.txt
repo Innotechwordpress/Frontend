@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Network Visualization</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;600;700&family=Quicksand:wght@300;500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            nunito: ['Nunito', 'sans-serif'],
+            quicksand: ['Quicksand', 'sans-serif'],
+            inter: ['Inter', 'sans-serif'],
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    .animate-fade-in {
+      animation: fadeIn 0.8s ease-in-out forwards;
+      opacity: 0;
+    }
+    .animate-slide-up {
+      animation: slideUp 0.8s ease-in-out forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    .animate-blur-in {
+      animation: blurIn 0.8s ease-in-out forwards;
+      filter: blur(10px);
+      opacity: 0;
+    }
+    
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes blurIn {
+      to { 
+        filter: blur(0);
+        opacity: 1;
+      }
+    }
+    
+    .delay-100 { animation-delay: 100ms; }
+    .delay-200 { animation-delay: 200ms; }
+    .delay-300 { animation-delay: 300ms; }
+    .delay-400 { animation-delay: 400ms; }
+  </style>
+</head>
+<body class="bg-gray-900 min-h-screen flex items-center justify-center p-4 font-inter">
+  <div class="w-full h-screen flex flex-col md:flex-row items-center justify-center">
+    
+    <!-- Left Content -->
+    <div class="w-full md:w-1/2 p-8 z-10">
+      <h1 class="font-quicksand font-light text-5xl md:text-7xl text-white tracking-tight animate-fade-in">
+        Global <span class="font-semibold">Network</span>
+      </h1>
+      
+      <h2 class="font-nunito font-bold text-xl text-blue-300 mt-4 animate-slide-up delay-100">
+        Interactive Visualization Experience
+      </h2>
+      
+      <p class="font-inter text-base text-gray-300 mt-6 max-w-lg animate-fade-in delay-200">
+        Explore our worldwide presence with this interactive 3D globe. Our network spans key strategic locations, enabling us to serve clients globally with localized expertise and 24/7 support capabilities.
+      </p>
+      
+      <div class="mt-8 animate-slide-up delay-300">
+        <button class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full px-6 py-3 transition-all">
+          Explore Network
+        </button>
+        <button class="ml-4 border border-white/30 hover:bg-white/10 text-white font-medium rounded-full px-6 py-3 transition-all">
+          Learn More
+        </button>
+      </div>
+      
+      <div class="mt-10 flex space-x-6 animate-fade-in delay-400">
+        <div class="flex items-center">
+          <span class="w-3 h-3 rounded-full bg-pink-500 mr-2"></span>
+          <span class="text-white/80 text-sm">Headquarters</span>
+        </div>
+        <div class="flex items-center">
+          <span class="w-3 h-3 rounded-full bg-blue-400 mr-2"></span>
+          <span class="text-white/80 text-sm">Regional Offices</span>
+        </div>
+        <div class="flex items-center">
+          <span class="w-3 h-3 rounded-full bg-green-400 mr-2"></span>
+          <span class="text-white/80 text-sm">Partners</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Globe Visualization -->
+    <div class="w-full md:w-1/2 h-96 md:h-screen relative animate-blur-in delay-100">
+      <canvas
+        id="globe"
+        style="width: 100%; height: 100%"
+        width="1000"
+        height="1000"
+        class="absolute inset-0"
+      ></canvas>
+      
+      <div class="absolute bottom-8 right-8 bg-black/30 backdrop-blur-md rounded-lg p-3 z-10">
+        <div class="grid grid-cols-2 gap-3 text-sm text-white">
+          <div>
+            <p class="font-medium">San Francisco</p>
+            <p class="text-xs text-white/60">Headquarters</p>
+          </div>
+          <div>
+            <p class="font-medium">London</p>
+            <p class="text-xs text-white/60">European Hub</p>
+          </div>
+          <div>
+            <p class="font-medium">Tokyo</p>
+            <p class="text-xs text-white/60">Asia Pacific</p>
+          </div>
+          <div>
+            <p class="font-medium">New York</p>
+            <p class="text-xs text-white/60">East Coast</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import createGlobe from 'https://cdn.skypack.dev/cobe'
+
+    let phi = 0
+    let canvas = document.getElementById("globe")
+
+    const globe = createGlobe(canvas, {
+      devicePixelRatio: 2,
+      width: 1000,
+      height: 1000,
+      phi: 0,
+      theta: 0.2,
+      dark: 1,
+      diffuse: 1.2,
+      scale: 1.1,
+      mapSamples: 16000,
+      mapBrightness: 6,
+      baseColor: [0.3, 0.3, 0.6],
+      markerColor: [1, 0.5, 1],
+      glowColor: [0.7, 0.7, 1],
+      offset: [0, 0],
+      markers: [
+        { location: [37.7595, -122.4367], size: 0.06 }, // San Francisco
+        { location: [40.7128, -74.006], size: 0.04 },   // New York
+        { location: [51.5074, -0.1278], size: 0.04 },   // London
+        { location: [35.6762, 139.6503], size: 0.04 },  // Tokyo
+        { location: [19.0760, 72.8777], size: 0.03 },   // Mumbai
+        { location: [-33.8688, 151.2093], size: 0.03 }, // Sydney
+        { location: [-23.5505, -46.6333], size: 0.03 }, // São Paulo
+      ],
+      onRender: (state) => {
+        state.phi = phi
+        phi += 0.003
+      },
+    })
+  </script>
+</body>
+</html>
+Aura Logo
+Made in Aura
+
+Meng To
+
+Preview
+Code
+
+
