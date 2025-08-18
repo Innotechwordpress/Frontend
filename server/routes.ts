@@ -398,11 +398,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Set user data in session
         (req as any).session.userId = user.id;
         (req as any).session.user = user;
+        // Store OAuth tokens for future API calls
+        (req as any).session.accessToken = tokenData.access_token;
+        (req as any).session.refreshToken = tokenData.refresh_token;
 
         console.log("Session regenerated for user:", {
           userId: user.id,
           email: user.email,
           sessionId: (req as any).sessionID,
+          hasAccessToken: !!tokenData.access_token,
         });
 
         // Save session before redirect
@@ -587,7 +591,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Fetching unread emails for dashboard for user:", user.email);
       
-      // Try to fetch from FastAPI
+      // Check if we have stored OAuth tokens in session
+      const accessToken = req.session.accessToken;
+      
+      if (!accessToken) {
+        console.log("No OAuth token found in session for dashboard request");
+        // Return empty data if no token
+        return res.json({
+          emails: [],
+          count: 0,
+          message: "OAuth token required. Please reconnect your Google account."
+        });
+      }
+      
+      // Try to fetch from FastAPI with OAuth token
       try {
         const fastApiResponse = await fetch(
           "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
@@ -595,6 +612,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
+              "oauth-token": accessToken,
             },
           },
         );
@@ -611,10 +629,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         } else {
           console.log("FastAPI returned error for dashboard:", fastApiResponse.status);
+          const errorText = await fastApiResponse.text();
+          console.log("FastAPI error details:", errorText);
+          
           // Return empty data if FastAPI fails
           return res.json({
             emails: [],
-            count: 0
+            count: 0,
+            message: "Failed to fetch emails from FastAPI"
           });
         }
       } catch (fetchError) {
@@ -622,7 +644,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Return empty data as fallback
         return res.json({
           emails: [],
-          count: 0
+          count: 0,
+          message: "Network error while fetching emails"
         });
       }
     } catch (error) {
