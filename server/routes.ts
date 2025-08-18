@@ -260,6 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Using callback redirect URI:', GOOGLE_REDIRECT_URI);
 
       // Exchange code for access token
+      console.log('Exchanging code for access token...');
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: {
@@ -276,11 +277,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const tokenData = await tokenResponse.json();
       console.log('Token response status:', tokenResponse.status);
-      console.log('Token data received:', { hasAccessToken: !!tokenData.access_token });
+      console.log('Full token data:', JSON.stringify(tokenData, null, 2));
+      console.log('Token data received:', { 
+        hasAccessToken: !!tokenData.access_token,
+        hasRefreshToken: !!tokenData.refresh_token,
+        tokenType: tokenData.token_type,
+        expiresIn: tokenData.expires_in
+      });
 
       if (!tokenData.access_token) {
         console.log('No access token received:', tokenData);
         return res.redirect('/login?error=token_failed');
+      }
+
+      // Send the access token to FastAPI project
+      console.log('Sending OAuth token to FastAPI:', tokenData.access_token);
+      try {
+        const fastApiResponse = await fetch(
+          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "oauth_token": tokenData.access_token,
+            },
+          }
+        );
+
+        if (!fastApiResponse.ok) {
+          console.error("FastAPI fetch failed with status:", fastApiResponse.status);
+          const errorText = await fastApiResponse.text();
+          console.error("FastAPI error response:", errorText);
+        } else {
+          const data = await fastApiResponse.json();
+          console.log("Emails fetched successfully from FastAPI:", data);
+        }
+      } catch (fastApiError) {
+        console.error("Error sending token to FastAPI:", fastApiError);
       }
 
       // Get user info from Google
