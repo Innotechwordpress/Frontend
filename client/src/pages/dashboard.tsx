@@ -344,7 +344,7 @@ export default function Dashboard() {
                         {unreadCount === 0 ? "No unread emails found." : "Loading emails..."}
                       </p>
                     </div>
-                  )}</div>
+                  )}
                 </div>
               </div>
             </CardContent>
