@@ -4,6 +4,33 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { signupSchema, loginSchema, type SignupData, type LoginData } from "@shared/schema";
 import Stripe from "stripe";
+import express from "express";
+
+const router = express.Router();
+
+// === USER ROUTES ===
+router.get("/user", (req, res) => {
+  if (!req.session?.user) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  res.json(req.session.user);
+});
+
+// === DEBUG SESSION ROUTE ===
+router.get("/debug/session", (req, res) => {
+  if (req.session) {
+    return res.json({
+      hasSession: true,
+      sessionId: req.sessionID,
+      user: req.session.user || null,
+      tokens: {
+        accessToken: req.session.accessToken || null,
+        refreshToken: req.session.refreshToken || null,
+      },
+    });
+  }
+  res.json({ hasSession: false });
+});
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -169,8 +196,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Google OAuth configuration
-  const GOOGLE_CLIENT_ID = '875515547546-nf734pi9udifl1i7f9pkh8e7rhfkasfb.apps.googleusercontent.com';
-  const GOOGLE_CLIENT_SECRET = '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';
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+  const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
   
   console.log('Using Client ID:', GOOGLE_CLIENT_ID ? GOOGLE_CLIENT_ID.substring(0, 20) + '...' : 'Not found');
 
