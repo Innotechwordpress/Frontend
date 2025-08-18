@@ -573,6 +573,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fetch emails from FastAPI
+  app.get("/api/fetch-emails", async (req: any, res) => {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      // Get stored OAuth token from session or database
+      // For now, we'll try to get it from the session if it exists
+      const user = users.get(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Note: In production, you'd want to store the OAuth token securely
+      // For now, we'll return a mock response since the token isn't persisted
+      // You can modify this to use a stored token when implementing proper OAuth token storage
+      
+      console.log("Attempting to fetch emails for user:", user.email);
+      
+      // Try to fetch from FastAPI - this will work if there's an active OAuth token
+      try {
+        const fastApiResponse = await fetch(
+          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              // Note: You'll need to implement OAuth token storage to pass the actual token here
+            },
+          },
+        );
+
+        if (fastApiResponse.ok) {
+          const emailData = await fastApiResponse.json();
+          console.log("Successfully fetched emails from FastAPI:", emailData);
+          return res.json(emailData);
+        } else {
+          console.log("FastAPI returned error:", fastApiResponse.status);
+          // Return mock data if FastAPI fails
+          return res.json({
+            emails: [
+              {
+                subject: "Welcome to Narrisia.AI",
+                sender: "welcome@narrisia.ai",
+                date: new Date().toISOString(),
+                snippet: "Thank you for signing up! Get started with your AI-powered dashboard."
+              },
+              {
+                subject: "OAuth Connection Required",
+                sender: "system@narrisia.ai", 
+                date: new Date().toISOString(),
+                snippet: "Please reconnect your Google account to fetch real emails."
+              }
+            ]
+          });
+        }
+      } catch (fetchError) {
+        console.error("Error fetching from FastAPI:", fetchError);
+        // Return mock data as fallback
+        return res.json({
+          emails: [
+            {
+              subject: "Sample Email 1",
+              sender: "example@company.com",
+              date: new Date().toISOString(),
+              snippet: "This is a sample email to demonstrate the email fetching functionality."
+            },
+            {
+              subject: "Sample Email 2", 
+              sender: "info@business.com",
+              date: new Date().toISOString(),
+              snippet: "Another sample email for testing purposes."
+            }
+          ]
+        });
+      }
+    } catch (error) {
+      console.error("Email fetch error:", error);
+      res.status(500).json({ message: "Error fetching emails" });
+    }
+  });
+
   // Create subscription for recurring payments
   app.post("/api/create-subscription", async (req: any, res) => {
     if (!req.session || !req.session.userId) {

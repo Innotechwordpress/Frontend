@@ -13,6 +13,8 @@ export default function Dashboard() {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [unreadEmails, setUnreadEmails] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Update time every minute for live greeting
   useEffect(() => {
@@ -22,6 +24,26 @@ export default function Dashboard() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch unread emails when the component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      fetch("/api/emails/unread")
+        .then((res) => res.json())
+        .then((data) => {
+          setUnreadEmails(data.emails);
+          setUnreadCount(data.count);
+        })
+        .catch((error) => {
+          console.error("Error fetching unread emails:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch unread emails.",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [user, toast]);
 
   if (isLoading) {
     return (
@@ -49,7 +71,7 @@ export default function Dashboard() {
     // Get current time in Indian timezone (IST)
     const indianTime = new Date(currentTime).toLocaleString("en-US", {timeZone: "Asia/Kolkata"});
     const hour = new Date(indianTime).getHours();
-    
+
     if (hour < 12) return "Good morning";
     if (hour < 17) return "Good afternoon";
     return "Good evening";
@@ -192,7 +214,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-xl font-bold text-white">$0.15B</div>
                 </div>
-                
+
                 <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-400">Employees</span>
@@ -200,7 +222,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-xl font-bold text-white">50</div>
                 </div>
-                
+
                 <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-400">Domain Age</span>
@@ -208,7 +230,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-xl font-bold text-white">7 years</div>
                 </div>
-                
+
                 <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-400">Sentiment Score</span>
@@ -217,7 +239,7 @@ export default function Dashboard() {
                   <div className="text-xl font-bold text-white">0.75</div>
                   <Progress value={75} className="mt-2 h-2" />
                 </div>
-                
+
                 <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-400">Certified</span>
@@ -228,7 +250,7 @@ export default function Dashboard() {
                     Not Certified
                   </Badge>
                 </div>
-                
+
                 <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-400">Top Investors</span>
@@ -239,7 +261,7 @@ export default function Dashboard() {
                     Not Funded
                   </Badge>
                 </div>
-                
+
                 <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-400">Company Age</span>
@@ -247,7 +269,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-xl font-bold text-white">9 years</div>
                 </div>
-                
+
                 <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 md:col-span-2 lg:col-span-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-gray-400">Connected Email Account</span>
@@ -277,50 +299,43 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Button 
+                <Button
                   className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md flex items-center gap-2"
-                  onClick={() => toast({ title: "Parsing Started", description: "Email analysis has begun." })}
+                  onClick={() => {
+                    toast({ title: "Parsing Started", description: "Email analysis has begun." });
+                    // Potentially trigger a backend process here if needed
+                  }}
                 >
                   <Zap className="w-4 h-4" />
                   Start Parsing
                 </Button>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Email Status</span>
+                      <span className="text-sm text-gray-400">Unread Emails</span>
                       <Activity className="h-4 w-4 text-green-400" />
                     </div>
-                    <div className="text-lg font-bold text-white">Connected</div>
-                    <div className="text-xs text-green-400">{user.email}</div>
+                    <div className="text-lg font-bold text-white">{unreadCount}</div>
+                    <div className="text-xs text-green-400">Unread emails</div>
                   </div>
-                  
-                  <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Sentiment Analysis</span>
-                      <TrendingUp className="h-4 w-4 text-blue-400" />
+                  {/* Render list of subjects */}
+                  {unreadEmails.length > 0 ? (
+                    unreadEmails.map((email, index) => (
+                      <div key={index} className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-gray-400">Subject</span>
+                          <Target className="h-4 w-4 text-blue-400" />
+                        </div>
+                        <div className="text-lg font-bold text-white truncate" title={email.subject}>{email.subject}</div>
+                        <div className="text-xs text-gray-400 mt-1">From: {email.sender}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 md:col-span-2 lg:col-span-4">
+                      <p className="text-center text-gray-400">No unread emails found.</p>
                     </div>
-                    <div className="text-lg font-bold text-white">Positive</div>
-                    <div className="text-xs text-blue-400">AI Engine Active</div>
-                  </div>
-                  
-                  <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Classification</span>
-                      <Target className="h-4 w-4 text-purple-400" />
-                    </div>
-                    <div className="text-lg font-bold text-white">Processing</div>
-                    <div className="text-xs text-purple-400">ML Models Ready</div>
-                  </div>
-                  
-                  <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Research Data</span>
-                      <BarChart3 className="h-4 w-4 text-orange-400" />
-                    </div>
-                    <div className="text-lg font-bold text-white">Available</div>
-                    <div className="text-xs text-orange-400">Live Database</div>
-                  </div>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -394,7 +409,7 @@ export default function Dashboard() {
                   Automate repetitive tasks and streamline your workflow
                 </p>
               </div>
-              
+
               <div className="text-center p-4">
                 <div className="p-3 rounded-full bg-green-400/10 w-fit mx-auto mb-3">
                   <BarChart3 className="h-6 w-6 text-green-400" />
@@ -404,7 +419,7 @@ export default function Dashboard() {
                   Get actionable insights from your productivity data
                 </p>
               </div>
-              
+
               <div className="text-center p-4">
                 <div className="p-3 rounded-full bg-purple-400/10 w-fit mx-auto mb-3">
                   <Users className="h-6 w-6 text-purple-400" />
