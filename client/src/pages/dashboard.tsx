@@ -31,8 +31,9 @@ export default function Dashboard() {
       fetch("/api/emails/unread")
         .then((res) => res.json())
         .then((data) => {
-          setUnreadEmails(data.emails);
-          setUnreadCount(data.count);
+          console.log("Dashboard received email data:", data);
+          setUnreadEmails(data.emails || []);
+          setUnreadCount(data.count || 0);
         })
         .catch((error) => {
           console.error("Error fetching unread emails:", error);
@@ -41,6 +42,9 @@ export default function Dashboard() {
             description: "Failed to fetch unread emails.",
             variant: "destructive",
           });
+          // Set empty state on error
+          setUnreadEmails([]);
+          setUnreadCount(0);
         });
     }
   }, [user, toast]);
@@ -321,21 +325,26 @@ export default function Dashboard() {
                   </div>
                   {/* Render list of subjects */}
                   {unreadEmails.length > 0 ? (
-                    unreadEmails.map((email, index) => (
-                      <div key={index} className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
+                    unreadEmails.map((email: any, index: number) => (
+                      <div key={email.id || index} className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm text-gray-400">Subject</span>
                           <Target className="h-4 w-4 text-blue-400" />
                         </div>
                         <div className="text-lg font-bold text-white truncate" title={email.subject}>{email.subject}</div>
                         <div className="text-xs text-gray-400 mt-1">From: {email.sender}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {email.snippet ? email.snippet.substring(0, 100) + '...' : 'No preview available'}
+                        </div>
                       </div>
                     ))
                   ) : (
                     <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 md:col-span-2 lg:col-span-4">
-                      <p className="text-center text-gray-400">No unread emails found.</p>
+                      <p className="text-center text-gray-400">
+                        {unreadCount === 0 ? "No unread emails found." : "Loading emails..."}
+                      </p>
                     </div>
-                  )}
+                  )}</div>
                 </div>
               </div>
             </CardContent>

@@ -573,6 +573,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get unread emails endpoint for dashboard
+  app.get("/api/emails/unread", async (req: any, res) => {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const user = users.get(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log("Fetching unread emails for dashboard for user:", user.email);
+      
+      // Try to fetch from FastAPI
+      try {
+        const fastApiResponse = await fetch(
+          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (fastApiResponse.ok) {
+          const emailData = await fastApiResponse.json();
+          console.log("Successfully fetched emails from FastAPI for dashboard:", emailData);
+          
+          // Format the response for dashboard
+          const emails = emailData.emails || [];
+          return res.json({
+            emails: emails,
+            count: emails.length
+          });
+        } else {
+          console.log("FastAPI returned error for dashboard:", fastApiResponse.status);
+          // Return empty data if FastAPI fails
+          return res.json({
+            emails: [],
+            count: 0
+          });
+        }
+      } catch (fetchError) {
+        console.error("Error fetching from FastAPI for dashboard:", fetchError);
+        // Return empty data as fallback
+        return res.json({
+          emails: [],
+          count: 0
+        });
+      }
+    } catch (error) {
+      console.error("Dashboard email fetch error:", error);
+      res.status(500).json({ message: "Error fetching emails" });
+    }
+  });
+
   // Fetch emails from FastAPI
   app.get("/api/fetch-emails", async (req: any, res) => {
     if (!req.session || !req.session.userId) {
