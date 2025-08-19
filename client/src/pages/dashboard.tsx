@@ -393,7 +393,7 @@ export default function Dashboard() {
                         No unread emails found.
                       </p>
                     </div>
-                  )}</div>
+                  )}
                 </div>
               </div>
             </CardContent>
