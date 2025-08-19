@@ -323,8 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.redirect("/login?error=token_failed");
       }
 
-      // Send the access token to FastAPI project
-      console.log("Sending OAuth token to FastAPI:", tokenData.access_token);
+      // Send the access token to FastAPI project to fetch initial emails
       try {
         const fastApiResponse = await fetch(
           "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
@@ -346,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("FastAPI error response:", errorText);
         } else {
           const data = await fastApiResponse.json();
-          console.log("Emails fetched successfully from FastAPI:", data);
+          console.log("Initial emails fetched from FastAPI (fetch only):", data);
         }
       } catch (fastApiError) {
         console.error("Error sending token to FastAPI:", fastApiError);
@@ -590,10 +589,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Fetching unread emails for dashboard for user:", user.email);
-      
+
       // Check if we have stored OAuth tokens in session
       const accessToken = req.session.accessToken;
-      
+
       if (!accessToken) {
         console.log("No OAuth token found in session for dashboard request");
         // Return empty data if no token
@@ -603,8 +602,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: "OAuth token required. Please reconnect your Google account."
         });
       }
-      
-      // Try to fetch from FastAPI with OAuth token
+
+      // Try to fetch from FastAPI with OAuth token for processed emails
       try {
         const fastApiResponse = await fetch(
           "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch/processed",
@@ -620,11 +619,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (fastApiResponse.ok) {
           const processedData = await fastApiResponse.json();
           console.log("Successfully fetched processed emails and credibility from FastAPI:", processedData);
-          
+
           // Format the response for dashboard
           const emails = processedData.emails || [];
           const credibilityAnalysis = processedData.credibility_analysis || [];
-          
+
           return res.json({
             emails: emails,
             count: emails.length,
@@ -634,7 +633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("FastAPI returned error for dashboard:", fastApiResponse.status);
           const errorText = await fastApiResponse.text();
           console.log("FastAPI error details:", errorText);
-          
+
           // Return empty data if FastAPI fails
           return res.json({
             emails: [],
@@ -664,20 +663,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // Get stored OAuth token from session or database
-      // For now, we'll try to get it from the session if it exists
       const user = users.get(req.session.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Note: In production, you'd want to store the OAuth token securely
-      // For now, we'll return a mock response since the token isn't persisted
-      // You can modify this to use a stored token when implementing proper OAuth token storage
-      
       console.log("Attempting to fetch emails for user:", user.email);
-      
-      // Try to fetch from FastAPI - this will work if there's an active OAuth token
+
+      // Check if there's an active OAuth token
+      const accessToken = req.session.accessToken;
+
+      if (!accessToken) {
+        console.log("No OAuth token found in session for fetch-emails request");
+        // Return mock data if no token
+        return res.json({
+          emails: [
+            {
+              subject: "OAuth Connection Required",
+              sender: "system@narrisia.ai",
+              date: new Date().toISOString(),
+              snippet: "Please reconnect your Google account to fetch real emails."
+            }
+          ]
+        });
+      }
+
+      // Try to fetch from FastAPI with OAuth token
       try {
         const fastApiResponse = await fetch(
           "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
@@ -685,7 +696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              // Note: You'll need to implement OAuth token storage to pass the actual token here
+              "oauth-token": accessToken,
             },
           },
         );
@@ -695,7 +706,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log("Successfully fetched emails from FastAPI:", emailData);
           return res.json(emailData);
         } else {
-          console.log("FastAPI returned error:", fastApiResponse.status);
+          console.log("FastAPI returned error for fetch-emails:", fastApiResponse.status);
+          const errorText = await fastApiResponse.text();
+          console.log("FastAPI error details:", errorText);
           // Return mock data if FastAPI fails
           return res.json({
             emails: [
@@ -706,16 +719,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 snippet: "Thank you for signing up! Get started with your AI-powered dashboard."
               },
               {
-                subject: "OAuth Connection Required",
-                sender: "system@narrisia.ai", 
+                subject: "FastAPI Error",
+                sender: "system@narrisia.ai",
                 date: new Date().toISOString(),
-                snippet: "Please reconnect your Google account to fetch real emails."
+                snippet: "Could not fetch emails due to an error. Please try again later."
               }
             ]
           });
         }
       } catch (fetchError) {
-        console.error("Error fetching from FastAPI:", fetchError);
+        console.error("Error fetching from FastAPI for fetch-emails:", fetchError);
         // Return mock data as fallback
         return res.json({
           emails: [
@@ -726,7 +739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               snippet: "This is a sample email to demonstrate the email fetching functionality."
             },
             {
-              subject: "Sample Email 2", 
+              subject: "Sample Email 2",
               sender: "info@business.com",
               date: new Date().toISOString(),
               snippet: "Another sample email for testing purposes."

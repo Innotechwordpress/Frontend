@@ -307,9 +307,46 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <Button
                   className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md flex items-center gap-2"
-                  onClick={() => {
+                  onClick={async () => {
                     toast({ title: "Parsing Started", description: "Email analysis has begun." });
-                    // Potentially trigger a backend process here if needed
+                    
+                    try {
+                      const response = await fetch("/api/emails/start-parsing", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                      });
+                      
+                      if (response.ok) {
+                        const data = await response.json();
+                        console.log("Parsing completed:", data);
+                        
+                        // Update the state with processed data
+                        setUnreadEmails(data.emails || []);
+                        setUnreadCount(data.count || 0);
+                        setCredibilityAnalysis(data.credibility_analysis || []);
+                        
+                        toast({ 
+                          title: "Parsing Complete", 
+                          description: "Email analysis and credibility scoring completed!" 
+                        });
+                      } else {
+                        const errorData = await response.json();
+                        toast({
+                          title: "Parsing Failed",
+                          description: errorData.message || "Failed to process emails.",
+                          variant: "destructive",
+                        });
+                      }
+                    } catch (error) {
+                      console.error("Error starting parsing:", error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to start email parsing.",
+                        variant: "destructive",
+                      });
+                    }
                   }}
                 >
                   <Zap className="w-4 h-4" />
