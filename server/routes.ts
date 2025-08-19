@@ -607,7 +607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to fetch from FastAPI with OAuth token
       try {
         const fastApiResponse = await fetch(
-          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch/processed",
           {
             method: "GET",
             headers: {
@@ -618,14 +618,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
 
         if (fastApiResponse.ok) {
-          const emailData = await fastApiResponse.json();
-          console.log("Successfully fetched emails from FastAPI for dashboard:", emailData);
+          const processedData = await fastApiResponse.json();
+          console.log("Successfully fetched processed emails and credibility from FastAPI:", processedData);
           
           // Format the response for dashboard
-          const emails = emailData.emails || [];
+          const emails = processedData.emails || [];
+          const credibilityAnalysis = processedData.credibility_analysis || [];
+          
           return res.json({
             emails: emails,
-            count: emails.length
+            count: emails.length,
+            credibility_analysis: credibilityAnalysis
           });
         } else {
           console.log("FastAPI returned error for dashboard:", fastApiResponse.status);

@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [unreadEmails, setUnreadEmails] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [credibilityAnalysis, setCredibilityAnalysis] = useState([]);
 
   // Update time every minute for live greeting
   useEffect(() => {
@@ -31,9 +32,10 @@ export default function Dashboard() {
       fetch("/api/emails/unread")
         .then((res) => res.json())
         .then((data) => {
-          console.log("Dashboard received email data:", data);
+          console.log("Dashboard received processed data:", data);
           setUnreadEmails(data.emails || []);
           setUnreadCount(data.count || 0);
+          setCredibilityAnalysis(data.credibility_analysis || []);
         })
         .catch((error) => {
           console.error("Error fetching unread emails:", error);
@@ -350,6 +352,73 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Company Credibility Analysis Section */}
+        {credibilityAnalysis.length > 0 && (
+          <div className="mb-8">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-purple-400 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Company Credibility Analysis
+                </CardTitle>
+                <CardDescription>
+                  AI-powered credibility scores and intent classification
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {credibilityAnalysis.map((analysis: any, index: number) => (
+                    <div key={index} className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-400">Company Analysis</span>
+                        <BarChart3 className="h-4 w-4 text-purple-400" />
+                      </div>
+                      <div className="space-y-2">
+                        {analysis.company_name && (
+                          <div>
+                            <span className="text-xs text-gray-400">Company:</span>
+                            <div className="text-sm font-semibold text-white">{analysis.company_name}</div>
+                          </div>
+                        )}
+                        {analysis.credibility_score && (
+                          <div>
+                            <span className="text-xs text-gray-400">Credibility Score:</span>
+                            <div className="text-lg font-bold text-green-400">{analysis.credibility_score}/100</div>
+                            <Progress value={analysis.credibility_score} className="mt-1 h-2" />
+                          </div>
+                        )}
+                        {analysis.intent_classification && (
+                          <div>
+                            <span className="text-xs text-gray-400">Intent:</span>
+                            <Badge variant="outline" className="border-blue-400 text-blue-400 ml-2">
+                              {analysis.intent_classification}
+                            </Badge>
+                          </div>
+                        )}
+                        {analysis.risk_level && (
+                          <div>
+                            <span className="text-xs text-gray-400">Risk Level:</span>
+                            <Badge 
+                              variant="outline" 
+                              className={`ml-2 ${
+                                analysis.risk_level === 'LOW' ? 'border-green-400 text-green-400' :
+                                analysis.risk_level === 'MEDIUM' ? 'border-yellow-400 text-yellow-400' :
+                                'border-red-400 text-red-400'
+                              }`}
+                            >
+                              {analysis.risk_level}
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Quick Actions */}
