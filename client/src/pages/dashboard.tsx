@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import { TrendingUp, Users, Target, Zap, BarChart3, Calendar, Activity, ArrowRight, Brain, Rocket, Shield } from "lucide-react";
+import { TrendingUp, Users, Target, Zap, BarChart3, Calendar, Activity, ArrowRight, Brain, Rocket, Shield, Building } from "lucide-react";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -399,6 +399,198 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Company Analysis Dropdown Section */}
+        {credibilityAnalysis.length > 0 && (
+          <div className="mb-8">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader>
+                <CardTitle className="text-purple-400 flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Company Analysis Details
+                </CardTitle>
+                <CardDescription>
+                  Detailed credibility analysis and company intelligence
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {credibilityAnalysis.map((analysis: any, index: number) => (
+                    <div key={index} className="border border-gray-700 rounded-lg bg-gray-800/30">
+                      <details className="group">
+                        <summary className="flex cursor-pointer items-center justify-between p-4 hover:bg-gray-800/50 rounded-lg transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-purple-400/10">
+                              <Building className="h-5 w-5 text-purple-400" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold text-white">
+                                {analysis.company_name || 'Unknown Company'}
+                              </h3>
+                              <div className="flex items-center gap-4 mt-1">
+                                <Badge variant="outline" className="border-green-400 text-green-400">
+                                  Score: {analysis.credibility_score || 0}/100
+                                </Badge>
+                                <Badge variant="outline" className="border-blue-400 text-blue-400">
+                                  {analysis.intent_classification || 'Unknown Intent'}
+                                </Badge>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`${
+                                    analysis.risk_level === 'LOW' ? 'border-green-400 text-green-400' :
+                                    analysis.risk_level === 'MEDIUM' ? 'border-yellow-400 text-yellow-400' :
+                                    'border-red-400 text-red-400'
+                                  }`}
+                                >
+                                  Risk: {analysis.risk_level || 'Unknown'}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-400">View Details</span>
+                            <svg 
+                              className="h-5 w-5 text-gray-400 group-open:rotate-180 transition-transform" 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
+                        </summary>
+                        
+                        <div className="p-4 pt-0">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                            {/* Company Overview */}
+                            <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                              <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                <Building className="h-4 w-4 text-blue-400" />
+                                Company Overview
+                              </h4>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Company Name:</span>
+                                  <span className="text-white">{analysis.company_name || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Industry:</span>
+                                  <span className="text-white">{analysis.industry || 'Unknown'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Company Size:</span>
+                                  <span className="text-white">{analysis.company_size || 'Unknown'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Founded:</span>
+                                  <span className="text-white">{analysis.founded_year || 'Unknown'}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Financial Metrics */}
+                            <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                              <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                <TrendingUp className="h-4 w-4 text-green-400" />
+                                Financial Metrics
+                              </h4>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Market Cap:</span>
+                                  <span className="text-white">{analysis.market_cap || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Revenue:</span>
+                                  <span className="text-white">{analysis.revenue || 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Funding Status:</span>
+                                  <span className="text-white">{analysis.funding_status || 'Unknown'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Investors:</span>
+                                  <span className="text-white">{analysis.top_investors || 'None Listed'}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Credibility Factors */}
+                            <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                              <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                <Shield className="h-4 w-4 text-purple-400" />
+                                Credibility Factors
+                              </h4>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Domain Age:</span>
+                                  <span className="text-white">{analysis.domain_age || 'Unknown'}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">SSL Certificate:</span>
+                                  <span className={`${analysis.ssl_certificate ? 'text-green-400' : 'text-red-400'}`}>
+                                    {analysis.ssl_certificate ? 'Valid' : 'Invalid/Missing'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Business Verified:</span>
+                                  <span className={`${analysis.business_verified ? 'text-green-400' : 'text-red-400'}`}>
+                                    {analysis.business_verified ? 'Yes' : 'No'}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Employee Count:</span>
+                                  <span className="text-white">{analysis.employee_count || 'Unknown'}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Contact & Intent */}
+                            <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50 md:col-span-2 lg:col-span-3">
+                              <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                                <Activity className="h-4 w-4 text-yellow-400" />
+                                Communication Details
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <span className="text-gray-400 block mb-1">Email Intent:</span>
+                                  <span className="text-white">{analysis.intent_classification || 'Unknown'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400 block mb-1">Sender Domain:</span>
+                                  <span className="text-white">{analysis.sender_domain || 'Unknown'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400 block mb-1">Contact Quality:</span>
+                                  <span className="text-white">{analysis.contact_quality || 'Unknown'}</span>
+                                </div>
+                                <div>
+                                  <span className="text-gray-400 block mb-1">Overall Score:</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xl font-bold text-green-400">
+                                      {analysis.credibility_score || 0}/100
+                                    </span>
+                                    <Progress value={analysis.credibility_score || 0} className="h-2 flex-1" />
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {analysis.summary && (
+                                <div className="mt-4 p-3 rounded-lg bg-gray-600/50 border border-gray-500">
+                                  <span className="text-gray-400 block mb-1">AI Summary:</span>
+                                  <p className="text-white text-sm">{analysis.summary}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </details>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Company Credibility Analysis Section */}
         {credibilityAnalysis.length > 0 && (
