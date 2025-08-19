@@ -576,7 +576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get unread emails endpoint for dashboard
+  // Get unread emails endpoint for dashboard (basic count only)
   app.get("/api/emails/unread", async (req: any, res) => {
     if (!req.session || !req.session.userId) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -588,7 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      console.log("Fetching unread emails for dashboard for user:", user.email);
+      console.log("Fetching basic email count for dashboard for user:", user.email);
 
       // Check if we have stored OAuth tokens in session
       const accessToken = req.session.accessToken;
@@ -603,7 +603,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Try to fetch from FastAPI with OAuth token for processed emails
+      // Try to fetch basic emails from FastAPI (without processing)
+      try {
+        const fastApiResponse = await fetch(
+          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "oauth-token": accessToken,
+            },
+          },
+        );
+
+        if (fastApiResponse.ok) {
+          const emailData = await fastApiResponse.json();
+          console.log("Successfully fetched basic emails from FastAPI:", emailData);
+
+          // Format the response for dashboard (basic info only)
+          const emails = emailData.emails || [];
+
+          return res.json({
+            emails: emails,
+            count: emails.length,
+            credibility_analysis: [] // Empty until parsing is started
+          });
+        } else {
+          console.log("FastAPI returned error for dashboard:", fastApiResponse.status);
+          const errorText = await fastApiResponse.text();
+          console.log("FastAPI error details:", errorText);
+
+          // Return empty data if FastAPI fails
+          return res.json({
+            emails: [],
+            count: 0,
+            message: "Failed to fetch emails from FastAPI"
+          });
+        }
+      } catch (fetchError) {
+        console.error("Error fetching from FastAPI for dashboard:", fetchError);
+        // Return empty data as fallback
+        return res.json({
+          emails: [],
+          count: 0,
+          message: "Network error while fetching emails"
+        });
+      }
+    } catch (error) {
+      console.error("Dashboard email fetch error:", error);
+      res.status(500).json({ message: "Error fetching emails" });
+    }
+  });
+
+  // Start parsing endpoint for the "Start Parsing" button
+  app.post("/api/emails/start-parsing", async (req: any, res) => {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const user = users.get(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log("Starting email parsing and credibility analysis for user:", user.email);
+
+      // Check if we have stored OAuth tokens in session
+      const accessToken = req.session.accessToken;
+
+      if (!accessToken) {
+        console.log("No OAuth token found in session for parsing request");
+        return res.status(401).json({
+          message: "OAuth token required. Please reconnect your Google account."
+        });
+      }
+
+      // Try to fetch processed emails from FastAPI
       try {
         const fastApiResponse = await fetch(
           "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch/processed",
@@ -630,29 +706,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             credibility_analysis: credibilityAnalysis
           });
         } else {
-          console.log("FastAPI returned error for dashboard:", fastApiResponse.status);
+          console.log("FastAPI returned error for parsing:", fastApiResponse.status);
           const errorText = await fastApiResponse.text();
           console.log("FastAPI error details:", errorText);
 
-          // Return empty data if FastAPI fails
-          return res.json({
-            emails: [],
-            count: 0,
-            message: "Failed to fetch emails from FastAPI"
+          return res.status(500).json({
+            message: "Failed to process emails from FastAPI"
           });
         }
       } catch (fetchError) {
-        console.error("Error fetching from FastAPI for dashboard:", fetchError);
-        // Return empty data as fallback
-        return res.json({
-          emails: [],
-          count: 0,
-          message: "Network error while fetching emails"
+        console.error("Error fetching processed data from FastAPI:", fetchError);
+        return res.status(500).json({
+          message: "Network error while processing emails"
         });
       }
     } catch (error) {
-      console.error("Dashboard email fetch error:", error);
-      res.status(500).json({ message: "Error fetching emails" });
+      console.error("Email parsing error:", error);
+      res.status(500).json({ message: "Error processing emails" });
     }
   });
 

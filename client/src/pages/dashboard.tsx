@@ -362,28 +362,38 @@ export default function Dashboard() {
                     <div className="text-lg font-bold text-white">{unreadCount}</div>
                     <div className="text-xs text-green-400">Unread emails</div>
                   </div>
-                  {/* Render list of subjects */}
-                  {unreadEmails.length > 0 ? (
-                    unreadEmails.map((email: any, index: number) => (
-                      <div key={email.id || index} className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
+                  {/* Render company names and intents from credibility analysis */}
+                  {credibilityAnalysis.length > 0 ? (
+                    credibilityAnalysis.map((analysis: any, index: number) => (
+                      <div key={index} className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-gray-400">Subject</span>
+                          <span className="text-sm text-gray-400">Company</span>
                           <Target className="h-4 w-4 text-blue-400" />
                         </div>
-                        <div className="text-lg font-bold text-white truncate" title={email.subject}>{email.subject}</div>
-                        <div className="text-xs text-gray-400 mt-1">From: {email.sender}</div>
+                        <div className="text-lg font-bold text-white truncate" title={analysis.company_name}>
+                          {analysis.company_name || 'Unknown Company'}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          Intent: <span className="text-blue-400">{analysis.intent || 'Unknown'}</span>
+                        </div>
                         <div className="text-xs text-gray-500 mt-1">
-                          {email.snippet ? email.snippet.substring(0, 100) + '...' : 'No preview available'}
+                          Credibility: <span className="text-green-400">{analysis.credibility_score || 0}/100</span>
                         </div>
                       </div>
                     ))
+                  ) : unreadCount > 0 ? (
+                    <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 md:col-span-2 lg:col-span-4">
+                      <p className="text-center text-gray-400">
+                        Click "Start Parsing" to analyze company information and credibility scores.
+                      </p>
+                    </div>
                   ) : (
                     <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 md:col-span-2 lg:col-span-4">
                       <p className="text-center text-gray-400">
-                        {unreadCount === 0 ? "No unread emails found." : "Loading emails..."}
+                        No unread emails found.
                       </p>
                     </div>
-                  )}
+                  )}</div>
                 </div>
               </div>
             </CardContent>
