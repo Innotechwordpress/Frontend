@@ -1,4 +1,3 @@
-
 import uvicorn
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -110,11 +109,11 @@ async def signup(data: SignupData):
     for user in users.values():
         if user["email"] == data.email:
             raise HTTPException(status_code=400, detail="User already exists with this email")
-    
+
     # Create user
     user_id = generate_id()
     hashed_password = hash_password(data.password)
-    
+
     user = {
         "id": user_id,
         "email": data.email,
@@ -128,15 +127,15 @@ async def signup(data: SignupData):
         "goals": data.goals,
         "createdAt": datetime.utcnow().isoformat()
     }
-    
+
     users[user_id] = user
-    
+
     # Generate token
     token = generate_token(user_id)
-    
+
     # Remove password from response
     user_response = {k: v for k, v in user.items() if k != "password"}
-    
+
     return {
         "message": "User created successfully",
         "user": user_response,
@@ -151,17 +150,17 @@ async def login(data: LoginData, request: Request):
         if u["email"] == data.email:
             user = u
             break
-    
+
     if not user or not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=400, detail="Invalid email or password")
-    
+
     # Set session
     request.session["userId"] = user["id"]
     request.session["user"] = user
-    
+
     # Remove password from response
     user_response = {k: v for k, v in user.items() if k != "password"}
-    
+
     return {
         "message": "Login successful",
         "user": user_response
@@ -172,12 +171,12 @@ async def google_auth(request: Request):
     google_client_id = os.getenv("GOOGLE_CLIENT_ID")
     if not google_client_id:
         raise HTTPException(status_code=400, detail="Google OAuth not configured")
-    
+
     # Build redirect URI
     protocol = "https" if request.headers.get("x-forwarded-proto") == "https" else "http"
     host = request.headers.get("host")
     redirect_uri = f"{protocol}://{host}/api/auth/google/callback"
-    
+
     auth_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={google_client_id}&"
@@ -187,93 +186,75 @@ async def google_auth(request: Request):
         f"access_type=offline&"
         f"prompt=consent"
     )
-    
+
     return RedirectResponse(url=auth_url)
 
 @app.get("/api/auth/google/callback")
-async def google_callback(request: Request, code: str = None):
+async def google_callback(request: Request, code: str = None, state: str = None):
     if not code:
-        return RedirectResponse(url="/login?error=oauth_failed")
-    
-    google_client_id = os.getenv("GOOGLE_CLIENT_ID")
-    google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-    
-    if not google_client_id or not google_client_secret:
-        return RedirectResponse(url="/login?error=oauth_failed")
-    
+        raise HTTPException(status_code=400, detail="Authorization code not provided")
+
     try:
-        # Build redirect URI
-        protocol = "https" if request.headers.get("x-forwarded-proto") == "https" else "http"
-        host = request.headers.get("host")
-        redirect_uri = f"{protocol}://{host}/api/auth/google/callback"
-        
-        # Exchange code for tokens
+        # Exchange authorization code for access token
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            'client_id': settings.GOOGLE_CLIENT_ID,
+            'client_secret': settings.GOOGLE_CLIENT_SECRET,
+            'code': code,
+            'grant_type': 'authorization_code',
+            'redirect_uri': f"{request.base_url}api/auth/google/callback"
+        }
+
         async with httpx.AsyncClient() as client:
-            token_response = await client.post(
-                "https://oauth2.googleapis.com/token",
-                data={
-                    "client_id": google_client_id,
-                    "client_secret": google_client_secret,
-                    "code": code,
-                    "grant_type": "authorization_code",
-                    "redirect_uri": redirect_uri,
-                }
+            token_response = await client.post(token_url, data=token_data)
+            if token_response.status_code != 200:
+                raise HTTPException(status_code=400, detail="Failed to exchange authorization code")
+
+            token_info = token_response.json()
+            access_token = token_info.get('access_token')
+
+            if not access_token:
+                raise HTTPException(status_code=400, detail="Access token not received")
+
+            print(f"✅ OAuth token received: {access_token[:10]}...{access_token[-5:] if len(access_token) > 15 else access_token}")
+
+            # Get user info from Google
+            user_info_response = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"}
             )
-            token_data = token_response.json()
-        
-        if not token_data.get("access_token"):
-            return RedirectResponse(url="/login?error=token_failed")
-        
-        # Get user info from Google
-        async with httpx.AsyncClient() as client:
-            user_response = await client.get(
-                "https://www.googleapis.com/oauth2/v2/userinfo",
-                headers={"Authorization": f"Bearer {token_data['access_token']}"}
-            )
-            google_user = user_response.json()
-        
-        # Find or create user
-        user = None
-        for u in users.values():
-            if u["email"] == google_user["email"]:
-                user = u
-                break
-        
-        if not user:
-            user_id = generate_id()
-            user = {
-                "id": user_id,
-                "email": google_user["email"],
-                "password": "",  # No password for OAuth users
-                "firstName": google_user.get("given_name", ""),
-                "lastName": google_user.get("family_name", ""),
-                "role": "CEO",
-                "companyName": "",
-                "companySize": "",
-                "industry": "",
-                "goals": [],
-                "createdAt": datetime.utcnow().isoformat()
+
+            if user_info_response.status_code != 200:
+                raise HTTPException(status_code=400, detail="Failed to get user info")
+
+            user_info = user_info_response.json()
+
+            # Store user session
+            user_id = user_info.get('sub')
+            request.session['userId'] = user_id
+            request.session['accessToken'] = access_token  # Store the access token
+            request.session['user'] = {
+                'id': user_id,
+                'email': user_info.get('email'),
+                'firstName': user_info.get('given_name'),
+                'lastName': user_info.get('family_name'),
+                'picture': user_info.get('picture'),
+                'role': 'user'
             }
-            users[user_id] = user
-        
-        # Set session
-        request.session["userId"] = user["id"]
-        request.session["user"] = user
-        request.session["accessToken"] = token_data["access_token"]
-        request.session["refreshToken"] = token_data.get("refresh_token")
-        
-        return RedirectResponse(url="/")
-        
+
+            print(f"✅ User session created for: {user_info.get('email')}")
+            return RedirectResponse(url="/dashboard")
+
     except Exception as e:
-        print(f"Google OAuth error: {e}")
-        return RedirectResponse(url="/login?error=oauth_failed")
+        print(f"OAuth callback error: {e}")
+        raise HTTPException(status_code=500, detail="Authentication failed")
 
 @app.get("/api/user")
 async def get_current_user_endpoint(request: Request):
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     user_response = {k: v for k, v in user.items() if k != "password"}
     return user_response
 
@@ -282,16 +263,16 @@ async def update_profile(profile_data: UserProfile, request: Request):
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     # Update user data
     update_data = profile_data.dict(exclude_unset=True)
     for key, value in update_data.items():
         if value is not None:
             user[key] = value
-    
+
     users[user["id"]] = user
     request.session["user"] = user
-    
+
     user_response = {k: v for k, v in user.items() if k != "password"}
     return user_response
 
@@ -318,7 +299,7 @@ async def get_unread_emails(request: Request):
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     access_token = request.session.get("accessToken")
     if not access_token:
         return {
@@ -326,15 +307,15 @@ async def get_unread_emails(request: Request):
             "count": 0,
             "message": "OAuth token required. Please reconnect your Google account."
         }
-    
+
     try:
         # Use the existing fetch endpoint
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"http://localhost:8000/fetch",
+                f"http://localhost:5000/fetch",  # Corrected port
                 headers={"oauth-token": access_token}
             )
-            
+
             if response.status_code == 200:
                 email_data = response.json()
                 emails = email_data.get("emails", [])
@@ -345,7 +326,7 @@ async def get_unread_emails(request: Request):
                 }
     except Exception as e:
         print(f"Error fetching emails: {e}")
-    
+
     return {
         "emails": [],
         "count": 0,
@@ -357,24 +338,24 @@ async def start_parsing(request: Request):
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     access_token = request.session.get("accessToken")
     if not access_token:
         raise HTTPException(status_code=401, detail="OAuth token required")
-    
+
     try:
         # Use the existing processed fetch endpoint
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"http://localhost:8000/fetch/processed",
+                f"http://localhost:5000/fetch/processed",  # Corrected port
                 headers={"oauth-token": access_token}
             )
-            
+
             if response.status_code == 200:
                 processed_data = response.json()
                 emails = processed_data.get("emails", [])
                 credibility_analysis = processed_data.get("credibility_analysis", [])
-                
+
                 return {
                     "emails": emails,
                     "count": len(emails),
@@ -382,7 +363,7 @@ async def start_parsing(request: Request):
                 }
     except Exception as e:
         print(f"Error processing emails: {e}")
-    
+
     raise HTTPException(status_code=500, detail="Failed to process emails")
 
 # Stripe payment endpoints
@@ -391,7 +372,7 @@ async def create_payment_intent(request: Request, amount: float, plan: str = "pr
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     try:
         payment_intent = stripe.PaymentIntent.create(
             amount=int(amount * 100),  # Convert to cents
@@ -410,7 +391,7 @@ async def create_setup_intent(request: Request):
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
-    
+
     try:
         # Create or get customer
         customer_id = user.get("stripeCustomerId")
@@ -423,13 +404,13 @@ async def create_setup_intent(request: Request):
             customer_id = customer.id
             user["stripeCustomerId"] = customer_id
             users[user["id"]] = user
-        
+
         setup_intent = stripe.SetupIntent.create(
             customer=customer_id,
             usage="off_session",
             payment_method_types=["card"]
         )
-        
+
         return {"clientSecret": setup_intent.client_secret}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating setup intent: {str(e)}")
@@ -446,7 +427,7 @@ else:
     @app.get("/")
     async def root():
         return {"message": "Welcome to Narrisia AI Platform - Please build the frontend first"}
-    
+
     @app.get("/{path:path}")
     async def catch_all(path: str):
         return {"message": "Frontend not built. Please run: cd client && npm run build"}
