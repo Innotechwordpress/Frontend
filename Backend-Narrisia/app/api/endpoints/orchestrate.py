@@ -92,6 +92,6 @@ async def orchestrate(
         except Exception as e:
             print(f"❌ Failed to process email from '{email.get('sender', 'unknown')}': {e}")
             # Continue processing other emails instead of failing completely
-            continuen')}': {e}")
+            continue
 
     return results
