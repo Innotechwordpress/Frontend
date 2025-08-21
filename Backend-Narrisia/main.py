@@ -353,8 +353,8 @@ async def start_parsing(request: Request):
         raise HTTPException(status_code=401, detail="OAuth token required")
 
     try:
-        # Use the existing processed fetch endpoint
-        async with httpx.AsyncClient() as client:
+        # Use the existing processed fetch endpoint with longer timeout
+        async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.get(
                 f"http://localhost:5000/fetch/processed",
                 headers={"oauth-token": access_token}
@@ -370,10 +370,17 @@ async def start_parsing(request: Request):
                     "count": len(emails),
                     "credibility_analysis": credibility_analysis
                 }
+            else:
+                error_text = response.text
+                print(f"FastAPI processed endpoint error: {response.status_code} - {error_text}")
+                raise HTTPException(status_code=response.status_code, detail=f"Processing failed: {error_text}")
+                
+    except httpx.TimeoutException:
+        print("Timeout error during email processing")
+        raise HTTPException(status_code=408, detail="Email processing timed out. Please try again.")
     except Exception as e:
         print(f"Error processing emails: {e}")
-
-    raise HTTPException(status_code=500, detail="Failed to process emails")
+        raise HTTPException(status_code=500, detail=f"Failed to process emails: {str(e)}")
 
 # Stripe payment endpoints
 @app.post("/api/create-payment-intent")

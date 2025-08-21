@@ -78,7 +78,7 @@ async def orchestrate(
                         category="unknown",
                         confidence=0.0
                     ),
-                    notes="Classification failed or missing."
+                    notes=f"Classification failed: {str(classify_error)}"
                 )
 
             # ✅ Step 4: Combine and append
@@ -91,5 +91,7 @@ async def orchestrate(
 
         except Exception as e:
             print(f"❌ Failed to process email from '{email.get('sender', 'unknown')}': {e}")
+            # Continue processing other emails instead of failing completely
+            continuen')}': {e}")
 
     return results

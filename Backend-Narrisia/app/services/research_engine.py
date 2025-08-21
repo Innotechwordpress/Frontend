@@ -27,7 +27,7 @@ class SerperSearchTool(BaseTool):
         import httpx
         headers = {"X-API-KEY": self.api_key}
         params = {"q": query, "num": 3}
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.get("https://google.serper.dev/search", headers=headers, params=params)
             if resp.status_code == 200:
                 results = resp.json().get("organic", [])

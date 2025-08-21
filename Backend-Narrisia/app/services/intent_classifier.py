@@ -1,10 +1,12 @@
 from openai import AsyncOpenAI
 import json
 import re
+import httpx
 
 
 async def classify_intent(email_body: str, openai_api_key: str, model: str = "gpt-4o-mini") -> dict:
-    client = AsyncOpenAI(api_key=openai_api_key)
+    # Set a timeout for OpenAI API calls
+    client = AsyncOpenAI(api_key=openai_api_key, http_client=httpx.AsyncClient(timeout=30.0))
 
     prompt = f"""
 You are an AI assistant. Read the email below and classify it in two ways:
