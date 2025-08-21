@@ -4,4 +4,4 @@ from app.core.config import settings
 from app.core.config import Settings
 
 def get_settings() -> Settings:
-    return settingsgs
+    return settings
