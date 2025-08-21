@@ -21,4 +21,8 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Backend-Narrisia && poetry install && python main.py"
+args = "cd client && npm install && npm run build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd ../Backend-Narrisia && poetry install && python main.py"

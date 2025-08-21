@@ -435,13 +435,21 @@ async def create_setup_intent(request: Request):
         raise HTTPException(status_code=500, detail=f"Error creating setup intent: {str(e)}")
 
 # Serve static files 
-try:
+import os
+from pathlib import Path
+
+# Check if client/dist exists
+client_dist_path = Path("../client/dist")
+if client_dist_path.exists() and client_dist_path.is_dir():
     app.mount("/", StaticFiles(directory="../client/dist", html=True), name="static")
-except Exception:
-    # Fallback for development when client/dist doesn't exist
+else:
     @app.get("/")
     async def root():
-        return {"message": "Welcome to Narrisia AI Platform - Frontend not built yet"}
+        return {"message": "Welcome to Narrisia AI Platform - Please build the frontend first"}
+    
+    @app.get("/{path:path}")
+    async def catch_all(path: str):
+        return {"message": "Frontend not built. Please run: cd client && npm run build"}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

@@ -59,4 +59,4 @@ export const queryClient = new QueryClient({
 // API base URL for FastAPI backend
 export const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? ''
-  : 'http://localhost:5000';
+  : 'http://0.0.0.0:5000';
