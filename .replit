@@ -21,4 +21,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Backend-Narrisia && poetry install && python main.py"
+args = "cd Backend-Narrisia && poetry lock --no-update && poetry install && python main.py"
