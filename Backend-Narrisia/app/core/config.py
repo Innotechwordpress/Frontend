@@ -5,8 +5,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
   
     # Other existing settings
-    SERPER_API_KEY: str
-    OPENAI_API_KEY: str
+    SERPER_API_KEY: str = "your-serper-key-here"
+    OPENAI_API_KEY: str = "your-openai-key-here"
     MODEL: str = "gpt-4o-mini"
     DEBUG: bool = False
     DATABASE_URL: str = "sqlite+aiosqlite:///./email_orchestrator.db"
