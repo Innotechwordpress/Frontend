@@ -24,6 +24,7 @@ googleapis-common-protos = "1.61.0"
 email-validator = "2.1.0"
 itsdangerous = "^2.1.2"
 PyJWT = "^2.10.1"   # downgraded to a version Poetry can resolve
+pydantic-settings = "^2.10.1"
 
 [build-system]
 requires = ["poetry-core"]
