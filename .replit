@@ -25,4 +25,4 @@ args = "cd client && npm install && npm run build"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Backend-Narrisia && poetry install && python main.py"
+args = "cd Backend-Narrisia && poetry install && python -m uvicorn main:app --host 0.0.0.0 --port 5000 --reload"
