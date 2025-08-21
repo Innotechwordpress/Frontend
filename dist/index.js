@@ -279,7 +279,7 @@ async function registerRoutes(app2) {
       }
       try {
         const fastApiResponse = await fetch(
-          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          "http://localhost:5000/fetch",
           {
             method: "GET",
             headers: {
@@ -503,7 +503,7 @@ async function registerRoutes(app2) {
       }
       try {
         const fastApiResponse = await fetch(
-          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          "http://localhost:5000/fetch",
           {
             method: "GET",
             headers: {
@@ -564,7 +564,7 @@ async function registerRoutes(app2) {
       }
       try {
         const fastApiResponse = await fetch(
-          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch/processed",
+          "http://localhost:5000/fetch/processed",
           {
             method: "GET",
             headers: {
