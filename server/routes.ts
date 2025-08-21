@@ -326,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send the access token to FastAPI project to fetch initial emails
       try {
         const fastApiResponse = await fetch(
-          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          "http://localhost:5000/fetch",
           {
             method: "GET",
             headers: {
@@ -606,7 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to fetch basic emails from FastAPI (without processing)
       try {
         const fastApiResponse = await fetch(
-          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
+          "http://localhost:5000/fetch",
           {
             method: "GET",
             headers: {
@@ -682,7 +682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Try to fetch processed emails from FastAPI
       try {
         const fastApiResponse = await fetch(
-          "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch/processed",
+          "http://localhost:5000/fetch/processed",
           {
             method: "GET",
             headers: {
