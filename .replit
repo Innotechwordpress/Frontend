@@ -21,4 +21,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Backend-Narrisia && python main.py"
+args = "cd Backend-Narrisia && python3 main.py"
