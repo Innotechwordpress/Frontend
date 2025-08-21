@@ -99,7 +99,15 @@ def verify_password(password: str, hashed: str) -> bool:
 def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
     session = request.session
     if "userId" in session:
-        return users.get(session["userId"])
+        # Check if user exists in memory storage (email signup)
+        user = users.get(session["userId"])
+        if user:
+            return user
+        
+        # If not found in storage, check if it's a Google OAuth user
+        if "user" in session:
+            return session["user"]
+    
     return None
 
 # Auth endpoints
@@ -255,6 +263,7 @@ async def get_current_user_endpoint(request: Request):
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
+    # Remove password if it exists (for email signup users)
     user_response = {k: v for k, v in user.items() if k != "password"}
     return user_response
 
