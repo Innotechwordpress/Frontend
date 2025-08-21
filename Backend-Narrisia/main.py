@@ -438,10 +438,10 @@ async def create_setup_intent(request: Request):
 import os
 from pathlib import Path
 
-# Check if client/dist exists
-client_dist_path = Path("../client/dist")
+# Check if dist/public exists (Vite build output)
+client_dist_path = Path("../dist/public")
 if client_dist_path.exists() and client_dist_path.is_dir():
-    app.mount("/", StaticFiles(directory="../client/dist", html=True), name="static")
+    app.mount("/", StaticFiles(directory="../dist/public", html=True), name="static")
 else:
     @app.get("/")
     async def root():
