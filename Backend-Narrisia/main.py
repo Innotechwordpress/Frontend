@@ -454,11 +454,57 @@ async def create_setup_intent(request: Request):
 # Serve static files 
 import os
 from pathlib import Path
+from fastapi.responses import FileResponse
 
 # Check if dist/public exists (Vite build output)
 client_dist_path = Path("../dist/public")
 if client_dist_path.exists() and client_dist_path.is_dir():
-    app.mount("/", StaticFiles(directory="../dist/public", html=True), name="static")
+    app.mount("/static", StaticFiles(directory="../dist/public"), name="static")
+    
+    # Handle React Router routes - serve index.html for client-side routes
+    @app.get("/")
+    async def serve_spa():
+        return FileResponse("../dist/public/index.html")
+    
+    @app.get("/dashboard")
+    async def serve_dashboard():
+        return FileResponse("../dist/public/index.html")
+    
+    @app.get("/profile")
+    async def serve_profile():
+        return FileResponse("../dist/public/index.html")
+    
+    @app.get("/pricing")
+    async def serve_pricing():
+        return FileResponse("../dist/public/index.html")
+    
+    @app.get("/about")
+    async def serve_about():
+        return FileResponse("../dist/public/index.html")
+    
+    @app.get("/login")
+    async def serve_login():
+        return FileResponse("../dist/public/index.html")
+    
+    @app.get("/signup")
+    async def serve_signup():
+        return FileResponse("../dist/public/index.html")
+    
+    @app.get("/checkout")
+    async def serve_checkout():
+        return FileResponse("../dist/public/index.html")
+    
+    @app.get("/settings")
+    async def serve_settings():
+        return FileResponse("../dist/public/index.html")
+    
+    # Fallback for any other client-side routes
+    @app.get("/{path:path}")
+    async def serve_spa_fallback(path: str):
+        # Check if it's a file request (has extension) or API request
+        if "." in path or path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+        return FileResponse("../dist/public/index.html")
 else:
     @app.get("/")
     async def root():
