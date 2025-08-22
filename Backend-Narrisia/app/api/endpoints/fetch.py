@@ -239,4 +239,4 @@ async def fetch_and_process_emails(
             raise HTTPException(status_code=401, detail="OAuth token expired. Please reconnect your Google account.")
         elif "403" in error_message or "Insufficient permissions" in error_message:
             raise HTTPException(status_code=403, detail="Insufficient permissions. Please re-authorize the application.")
-        raise HTTPException(status_code=500, detail=f"Failed to process emails: {error_message}")"Failed to process emails")
+        raise HTTPException(status_code=500, detail=f"Failed to process emails: {error_message}")
