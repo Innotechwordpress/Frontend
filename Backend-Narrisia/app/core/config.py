@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     MODEL: str = "gpt-4o-mini"
     DEBUG: bool = False
     DATABASE_URL: str = "sqlite+aiosqlite:///./email_orchestrator.db"
+    
+    # Google OAuth settings
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
 
     class Config:
         env_file = ".env"
