@@ -185,7 +185,7 @@ async def trigger_auto_processing(raw_emails, oauth_token):
         return []
 
 
-@router.get("/", response_model=FetchEmailsResponse)
+@router.get("/fetch", response_model=FetchEmailsResponse)
 async def fetch_unread_emails(
         oauth_token: str = Header(
             ..., alias="oauth-token"
@@ -201,12 +201,12 @@ async def fetch_unread_emails(
     # Log the first 10 characters and last 5 chars of the token for debugging
     display_token = f"{oauth_token[:10]}...{oauth_token[-5:]}" if len(
         oauth_token) > 15 else oauth_token
-    logging.info(f"Received oauth_token: {display_token}")
+    logging.info(f"📩 Received oauth_token: {display_token}")
 
     logging.info("📩 Fetching unread emails using OAuth token (fast mode)")
 
     try:
-        gmail_service = GmailOAuthService(oauth_token)
+        gmail_service = GmailOAuthService(access_token=oauth_token)
         raw_emails = await gmail_service.fetch_unread_emails()
         parsed_emails = EmailParser.parse_emails(raw_emails)
         logging.info(f"✅ Fetched {len(parsed_emails)} unread emails")
@@ -214,9 +214,9 @@ async def fetch_unread_emails(
         return FetchEmailsResponse(emails=parsed_emails)
     except Exception as e:
         logging.error(f"Error fetching emails: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch emails")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch emails: {str(e)}")
 
-@router.get("/processed", response_model=Dict)
+@router.get("/fetch/processed", response_model=Dict)
 async def get_processed_emails(
     request: Request # Inject the request object to access headers
 ):

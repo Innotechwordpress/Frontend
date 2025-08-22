@@ -23,6 +23,10 @@ class GmailOAuthService:
         self.access_token = access_token if access_token else (stored_credentials.get('access_token') if stored_credentials else None)
         self.stored_credentials = stored_credentials
         self.service = None
+        
+        # If we have an access token, create minimal credentials immediately
+        if self.access_token:
+            self._initialize_with_token()
 
     async def _get_service(self):
         """Initialize Gmail service with OAuth token"""
@@ -110,6 +114,25 @@ class GmailOAuthService:
             self.access_token = None
             return False
 
+
+    def _initialize_with_token(self):
+        """Initialize service with just access token for basic operations"""
+        try:
+            if self.access_token:
+                # Create credentials with minimal required fields
+                credentials = Credentials(
+                    token=self.access_token,
+                    scopes=self.SCOPES
+                )
+                
+                # Build Gmail service
+                self.service = build('gmail', 'v1', credentials=credentials)
+                logging.info("Gmail service initialized with access token")
+                return True
+        except Exception as e:
+            logging.error(f"Failed to initialize with access token: {e}")
+            self.service = None
+        return False
 
     def initialize_service(self):
         """Initialize Gmail service with stored credentials"""

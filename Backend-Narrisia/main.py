@@ -109,11 +109,11 @@ def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
         user = users.get(session["userId"])
         if user:
             return user
-        
+
         # If not found in storage, check if it's a Google OAuth user
         if "user" in session:
             return session["user"]
-    
+
     return None
 
 # Auth endpoints
@@ -211,12 +211,12 @@ async def google_callback(request: Request, code: str = None, state: str = None)
     try:
         # Exchange authorization code for access token
         token_url = "https://oauth2.googleapis.com/token"
-        
+
         # Build the exact redirect URI that was used in the auth request
         protocol = "https" if request.headers.get("x-forwarded-proto") == "https" else "http"
         host = request.headers.get("host")
         redirect_uri = f"{protocol}://{host}/api/auth/google/callback"
-        
+
         token_data = {
             'client_id': settings.GOOGLE_CLIENT_ID,
             'client_secret': settings.GOOGLE_CLIENT_SECRET,
@@ -394,7 +394,7 @@ async def start_parsing(request: Request):
                 error_text = response.text
                 print(f"FastAPI processed endpoint error: {response.status_code} - {error_text}")
                 raise HTTPException(status_code=response.status_code, detail=f"Processing failed: {error_text}")
-                
+
     except httpx.TimeoutException:
         print("Timeout error during email processing")
         raise HTTPException(status_code=408, detail="Email processing timed out. Please try again.")
@@ -463,39 +463,39 @@ if client_dist_path.exists() and client_dist_path.is_dir():
     @app.get("/")
     async def serve_spa():
         return FileResponse("../dist/public/index.html")
-    
+
     @app.get("/dashboard")
     async def serve_dashboard():
         return FileResponse("../dist/public/index.html")
-    
+
     @app.get("/profile")
     async def serve_profile():
         return FileResponse("../dist/public/index.html")
-    
+
     @app.get("/pricing")
     async def serve_pricing():
         return FileResponse("../dist/public/index.html")
-    
+
     @app.get("/about")
     async def serve_about():
         return FileResponse("../dist/public/index.html")
-    
+
     @app.get("/login")
     async def serve_login():
         return FileResponse("../dist/public/index.html")
-    
+
     @app.get("/signup")
     async def serve_signup():
         return FileResponse("../dist/public/index.html")
-    
+
     @app.get("/checkout")
     async def serve_checkout():
         return FileResponse("../dist/public/index.html")
-    
+
     @app.get("/settings")
     async def serve_settings():
         return FileResponse("../dist/public/index.html")
-    
+
     # Mount static files at root to serve assets correctly (this should be last)
     app.mount("/", StaticFiles(directory="../dist/public", html=True), name="static")
 else:
