@@ -37,6 +37,8 @@ const userSchema = new mongoose.Schema<User>({
   isActive: { type: Boolean, default: true },
   googleId: { type: String },
   githubId: { type: String },
+  googleAccessToken: { type: String, select: false },
+  googleRefreshToken: { type: String, select: false },
 }, {
   timestamps: true
 });

@@ -171,55 +171,36 @@ export const isAuthenticated = (
 // ====== NEW: Store Google tokens after OAuth callback ======
 export const handleGoogleCallback = async (req: Request, res: Response) => {
   try {
-    const code = req.query.code as string;
-    if (!code) {
-      return res.status(400).json({ message: "No code returned from Google" });
+    const user = req.user as any;
+    if (!user) {
+      return res.redirect("/login?error=oauth_failed");
     }
 
     console.log("=== GOOGLE OAUTH CALLBACK TRIGGERED ===");
-    console.log("Auth code received:", code);
+    console.log("User authenticated:", user.email);
 
-    try {
-      const { tokens } = await oauth2Client.getToken(code);
-
-      console.log("Google tokens received:", tokens);
-      console.log("Tokens object:", JSON.stringify(tokens));
-
-      if (tokens && tokens.access_token) {
-        console.log("Sending OAuth token to FastAPI fetch:", tokens.access_token);
-
-        try {
-          const response = await fetch(
-            "https://e4f5546c-33cd-42ea-a914-918d6295b1ae-00-1ru77f1hkb7nk.sisko.replit.dev/fetch",
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                oauth_token: tokens.access_token, // or "Authorization": `Bearer ${tokens.access_token}`
-              },
-            },
-          );
-
-          if (!response.ok) {
-            console.error("FastAPI fetch failed with status:", response.status);
-          } else {
-            const data = await response.json();
-            console.log("Emails fetched directly from FastAPI:", data);
-          }
-        } catch (err) {
-          console.error("Error sending token to FastAPI:", err);
-        }
-      } else {
-        console.warn("No access_token found in tokens.");
-      }
-
-      res.redirect("/"); // redirect to frontend dashboard
-    } catch (error) {
-      console.error("Error handling Google callback:", error);
-      res.status(500).json({ message: "OAuth callback failed" });
+    // Check if we have tokens from the OAuth strategy
+    if (user._tokens) {
+      console.log("Storing Google tokens for user:", user.email);
+      
+      // Store the tokens in the user document
+      user.googleAccessToken = user._tokens.accessToken;
+      user.googleRefreshToken = user._tokens.refreshToken;
+      
+      // Remove temporary tokens
+      delete user._tokens;
+      
+      await user.save();
+      console.log("Tokens saved successfully");
     }
+
+    // Generate JWT token for our app
+    const token = generateToken(user._id);
+    
+    // Redirect to frontend with token
+    res.redirect(`/login?token=${token}`);
   } catch (error) {
-    console.error("Error in handleGoogleCallback outer try:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error in handleGoogleCallback:", error);
+    res.redirect("/login?error=oauth_failed");
   }
 };

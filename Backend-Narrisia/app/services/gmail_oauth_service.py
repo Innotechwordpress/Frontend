@@ -12,38 +12,138 @@ import email
 import email.utils
 import asyncio
 import concurrent.futures
+import os # Import os module for accessing environment variables
 
 class GmailOAuthService:
-    def __init__(self, access_token: str):
-        self.access_token = access_token
+    # Define SCOPES as a class attribute, assuming it's a list of strings
+    SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'] # Example scopes, adjust as needed
+
+    def __init__(self, access_token: str = None, stored_credentials: Dict = None):
+        # If access_token is provided directly, use it. Otherwise, try to get it from stored_credentials.
+        self.access_token = access_token if access_token else (stored_credentials.get('access_token') if stored_credentials else None)
+        self.stored_credentials = stored_credentials
         self.service = None
 
     async def _get_service(self):
         """Initialize Gmail service with OAuth token"""
         if self.service is None:
             try:
-                if not self.access_token:
-                    raise ValueError("Access token is required")
+                if not self.access_token and not self.stored_credentials:
+                    raise ValueError("Access token or stored credentials are required")
 
-                # Create credentials from access token
-                credentials = Credentials(token=self.access_token)
+                # If service is not initialized, try to initialize it
+                if self.service is None:
+                    if not self.initialize_service():
+                        # If initialization fails and we have stored credentials,
+                        # try to refresh the token and re-initialize.
+                        if self.stored_credentials and self.stored_credentials.get('refresh_token'):
+                            logging.info("Attempting to refresh token and re-initialize Gmail service...")
+                            if not await self._refresh_and_initialize_service():
+                                raise Exception("Failed to refresh token and initialize Gmail service.")
+                        else:
+                            raise Exception("Failed to initialize Gmail service with provided token or stored credentials.")
 
                 # Test the credentials by making a simple API call
-                test_service = build('gmail', 'v1', credentials=credentials)
+                test_service = build('gmail', 'v1', credentials=self.service._http.credentials) # Access credentials via the service's http object
                 try:
                     # Test with a simple profile request
                     test_service.users().getProfile(userId='me').execute()
                 except HttpError as e:
                     if e.resp.status == 401:
-                        raise ValueError(f"Invalid or expired OAuth token: {e}")
+                        logging.warning("OAuth token might be invalid or expired. Attempting refresh.")
+                        if await self._refresh_and_initialize_service():
+                            # If refresh was successful, retry the profile request
+                            test_service = build('gmail', 'v1', credentials=self.service._http.credentials)
+                            test_service.users().getProfile(userId='me').execute()
+                        else:
+                            raise ValueError(f"Invalid or expired OAuth token and refresh failed: {e}")
+                    else:
+                        raise
+                except Exception as e:
+                    logging.error(f"Error during Gmail service test: {e}")
                     raise
 
-                self.service = test_service
-                logging.info("Gmail service initialized successfully")
+                logging.info("Gmail service is ready.")
+            except ValueError as ve:
+                logging.error(f"Authentication error during service get: {ve}")
+                raise Exception(f"Authentication error: {ve}")
             except Exception as e:
-                logging.error(f"Failed to initialize Gmail service: {e}")
+                logging.error(f"Failed to get or validate Gmail service: {e}")
+                self.service = None # Ensure service is None if any error occurs
                 raise
         return self.service
+
+    async def _refresh_and_initialize_service(self):
+        """Refresh the access token and re-initialize the Gmail service."""
+        if not self.stored_credentials or not self.stored_credentials.get('refresh_token'):
+            logging.error("Cannot refresh token: missing refresh token or stored credentials.")
+            return False
+
+        try:
+            creds = Credentials(
+                token=self.access_token, # Use current access token if available
+                refresh_token=self.stored_credentials.get('refresh_token'),
+                token_uri='https://oauth2.googleapis.com/token',
+                client_id=os.getenv('GOOGLE_CLIENT_ID'),
+                client_secret=self.stored_credentials.get('client_secret', os.getenv('GOOGLE_CLIENT_SECRET')),
+                scopes=self.SCOPES
+            )
+
+            # Refresh the token
+            request = Request()
+            creds.refresh(request)
+
+            # Update stored credentials with new tokens and expiry
+            self.access_token = creds.token
+            self.stored_credentials['access_token'] = creds.token
+            self.stored_credentials['expiry'] = creds.expiry
+            self.stored_credentials['refresh_token'] = creds.refresh_token if creds.refresh_token else self.stored_credentials.get('refresh_token') # Keep existing if new one not provided
+
+            # Re-initialize the service with refreshed credentials
+            self.service = build('gmail', 'v1', credentials=creds)
+            logging.info("Gmail service refreshed and initialized successfully.")
+            return True
+
+        except Exception as e:
+            logging.error(f"Failed to refresh token or initialize Gmail service: {e}")
+            self.service = None
+            self.access_token = None
+            return False
+
+
+    def initialize_service(self):
+        """Initialize Gmail service with stored credentials"""
+        try:
+            if not self.stored_credentials:
+                raise ValueError("No stored credentials available")
+
+            # Extract tokens from stored credentials
+            access_token = self.stored_credentials.get('access_token')
+            refresh_token = self.stored_credentials.get('refresh_token')
+
+            if not access_token:
+                raise ValueError("No access token found in stored credentials")
+
+            # Create credentials object with all required fields
+            credentials = Credentials(
+                token=access_token,
+                refresh_token=refresh_token,
+                token_uri='https://oauth2.googleapis.com/token',
+                client_id=os.getenv('GOOGLE_CLIENT_ID'),
+                client_secret=self.stored_credentials.get('client_secret', os.getenv('GOOGLE_CLIENT_SECRET')),
+                scopes=self.SCOPES
+            )
+
+            # Build Gmail service
+            self.service = build('gmail', 'v1', credentials=credentials)
+            logging.info("Gmail service initialized successfully")
+            return True
+
+        except Exception as e:
+            logging.error(f"Failed to initialize Gmail service: {e}")
+            self.service = None
+            return False
+
 
     async def fetch_unread_emails(self) -> List[Dict]:
         """Fetch unread emails using Gmail OAuth API"""
@@ -86,7 +186,11 @@ class GmailOAuthService:
                 except HttpError as error:
                     logging.error(f"Gmail API error: {error}")
                     if error.resp.status == 401:
-                        raise Exception("OAuth token expired or invalid. Please reconnect your Google account.")
+                        # Attempt to refresh token if it's expired or invalid
+                        if not asyncio.get_event_loop().run_until_complete(self._refresh_and_initialize_service()):
+                            raise Exception("OAuth token expired or invalid. Please reconnect your Google account.")
+                        # If refresh was successful, retry the fetch_messages operation
+                        return fetch_messages() # Recursive call to retry
                     elif error.resp.status == 403:
                         raise Exception("Insufficient permissions. Please re-authorize the application.")
                     else:
@@ -113,10 +217,10 @@ class GmailOAuthService:
         """Parse a single email message from Gmail API response"""
         headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
         subject = headers.get("Subject", "No Subject")
-        
+
         # Extract sender from headers (Gmail API stores it here)
         sender_raw = headers.get("From") or headers.get("from") or headers.get("Sender") or headers.get("Return-Path")
-        
+
         if sender_raw and sender_raw.strip():
             sender = sender_raw.strip()
             # Clean up sender format if it contains name and email
