@@ -173,11 +173,11 @@ class GmailOAuthService:
     async def fetch_unread_emails(self) -> List[Dict]:
         """Fetch unread emails from Gmail primary inbox only"""
         try:
-            # Get list of unread messages from primary inbox only
-            query = "is:unread in:primary"
+            # Get list of unread messages from inbox (let's start with broader query)
+            query = "is:unread in:inbox"
 
-            # Limit to only 20 emails for faster processing
-            batch_size = 20
+            # Increase batch size to capture more emails
+            batch_size = 50
 
             response = await self._make_request(
                 "GET",
@@ -189,15 +189,34 @@ class GmailOAuthService:
             )
 
             messages = response.get("messages", [])
-            logging.info(f"📧 Found {len(messages)} unread messages to process")
+            logging.info(f"📧 Found {len(messages)} messages matching query '{query}'")
 
             if not messages:
-                logging.info("📧 No unread messages found")
-                return []
+                logging.info("📧 No messages found with current query")
+                # Try a simpler query as fallback
+                fallback_response = await self._make_request(
+                    "GET",
+                    "https://www.googleapis.com/gmail/v1/users/me/messages",
+                    params={
+                        "q": "is:unread",
+                        "maxResults": batch_size
+                    }
+                )
+                messages = fallback_response.get("messages", [])
+                logging.info(f"📧 Fallback query found {len(messages)} unread messages")
+                
+                if not messages:
+                    return []
 
             emails = []
+            processed_count = 0
+            primary_count = 0
+            
             for message in messages:
                 try:
+                    processed_count += 1
+                    logging.info(f"Processing message {processed_count}/{len(messages)}: {message['id']}")
+                    
                     # Fetch full message details
                     msg_response = await self._make_request(
                         "GET",
@@ -211,30 +230,54 @@ class GmailOAuthService:
                         labels = msg.get('labelIds', [])
                         is_unread = 'UNREAD' in labels
                         is_inbox = 'INBOX' in labels
-                        is_primary = 'CATEGORY_PRIMARY' in labels or (
-                            'CATEGORY_SOCIAL' not in labels and 
-                            'CATEGORY_PROMOTIONS' not in labels and 
-                            'CATEGORY_UPDATES' not in labels and 
-                            'CATEGORY_FORUMS' not in labels
-                        )
+                        
+                        # More lenient primary detection - if no category labels exist, assume primary
+                        category_labels = [l for l in labels if l.startswith('CATEGORY_')]
+                        is_primary = ('CATEGORY_PRIMARY' in labels or 
+                                    len(category_labels) == 0 or 
+                                    all(cat not in labels for cat in ['CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS', 
+                                                                     'CATEGORY_UPDATES', 'CATEGORY_FORUMS']))
 
-                        logging.info(f"Message {message['id']}: labels={labels}, unread={is_unread}, inbox={is_inbox}, primary={is_primary}")
+                        # Get sender for debugging
+                        headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
+                        sender = headers.get("From", "Unknown")[:50]
+                        subject = headers.get("Subject", "No Subject")[:50]
+                        
+                        logging.info(f"Message {message['id']}: From='{sender}', Subject='{subject}', labels={labels}, unread={is_unread}, inbox={is_inbox}, primary={is_primary}")
 
-                        # Only include unread emails from primary inbox
-                        if is_unread and is_inbox and is_primary:
+                        # For now, include ALL unread emails from inbox to see what we get
+                        if is_unread and is_inbox:
+                            if is_primary:
+                                primary_count += 1
+                            
                             # Parse email data
                             email_data = self._parse_email_message(msg)
                             email_data['is_unread'] = is_unread
                             email_data['labels'] = labels
+                            email_data['is_primary'] = is_primary
                             emails.append(email_data)
+                            
+                            logging.info(f"✅ Added email: {sender} - {subject}")
+                        else:
+                            logging.info(f"❌ Skipped email: unread={is_unread}, inbox={is_inbox}")
 
                 except Exception as msg_error:
                     logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
                     continue
 
-            # Log summary of what we found
+            # Log detailed summary of what we found
             unread_count = len(emails)
-            logging.info(f"Summary: {unread_count} unread emails returned")
+            logging.info(f"📊 SUMMARY:")
+            logging.info(f"  - Total messages processed: {processed_count}")
+            logging.info(f"  - Messages in primary: {primary_count}")
+            logging.info(f"  - Final emails returned: {unread_count}")
+            
+            if emails:
+                logging.info("📧 Returned emails:")
+                for i, email in enumerate(emails):
+                    logging.info(f"  {i+1}. From: {email.get('sender', 'Unknown')[:50]}")
+                    logging.info(f"      Subject: {email.get('subject', 'No Subject')[:50]}")
+                    logging.info(f"      Labels: {email.get('labels', [])}")
 
             return emails
 
@@ -252,9 +295,9 @@ class GmailOAuthService:
             start_of_week = today - timedelta(days=today.weekday())
             start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
 
-            # Format date for Gmail query (use different format) - primary inbox only
+            # Format date for Gmail query - include all inbox emails for count
             query_date = start_of_week.strftime("%Y/%m/%d")
-            query = f"in:primary after:{query_date}"
+            query = f"in:inbox after:{query_date}"
 
             logging.info(f"📊 Fetching emails from this week starting {query_date}")
 
