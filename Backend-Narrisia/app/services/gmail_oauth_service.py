@@ -222,7 +222,7 @@ class GmailOAuthService:
                         # For debugging, include all recent emails but mark their status
                         emails.append(email_data)
 
-                    except Exception as msg_error:
+                except Exception as msg_error:
                     logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
                     continue
 
