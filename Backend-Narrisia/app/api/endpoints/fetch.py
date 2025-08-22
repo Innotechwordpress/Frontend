@@ -19,6 +19,10 @@ router = APIRouter()
 async def trigger_auto_processing(raw_emails, oauth_token):
     """Auto-process emails through research pipeline"""
     try:
+        # Validate OAuth token first
+        if not oauth_token or oauth_token.strip() == "":
+            raise ValueError("OAuth token is empty or invalid")
+            
         # Get settings for API keys
         from app.core.config import settings
         
@@ -225,6 +229,14 @@ async def fetch_and_process_emails(
             "credibility_analysis": credibility_results
         }
         
+    except ValueError as ve:
+        logging.error(f"Validation error: {ve}")
+        raise HTTPException(status_code=401, detail=str(ve))
     except Exception as e:
         logging.error(f"Error processing emails: {e}")
-        raise HTTPException(status_code=500, detail="Failed to process emails")
+        error_message = str(e)
+        if "OAuth token expired" in error_message or "401" in error_message:
+            raise HTTPException(status_code=401, detail="OAuth token expired. Please reconnect your Google account.")
+        elif "403" in error_message or "Insufficient permissions" in error_message:
+            raise HTTPException(status_code=403, detail="Insufficient permissions. Please re-authorize the application.")
+        raise HTTPException(status_code=500, detail=f"Failed to process emails: {error_message}")"Failed to process emails")
