@@ -4,34 +4,41 @@ import logging
 # ✅ Single sender extraction
 def extract_domain_as_company_name(sender: str) -> str:
     """
-    Extract a company name from a single sender string.
-    E.g., "John <john@pictory.ai>" -> "Pictory"
-    E.g., "Google <no-reply@accounts.google.com>" -> "Google"
-    E.g., "2COMS Recruitment <noreply@2coms.com>" -> "2COMS Recruitment"
+    Extract company name from sender email with improved logic.
     """
-    if not sender or sender.strip() == "" or sender == "Unknown Sender":
-        print(f"⚠️ Empty or unknown sender provided: '{sender}'")
+    print(f"🎯 Extracting company from sender: '{sender}'")
+
+    if not sender or sender.strip() == "":
+        print("⚠️ Empty or None sender")
         return "Unknown"
 
-    # First try to extract company name from the sender display name
-    if "<" in sender and ">" in sender:
-        display_name = sender.split("<")[0].strip()
-        email_address = sender.split("<")[1].split(">")[0].strip()
+    sender = sender.strip()
 
-        # If display name exists and is not just the email, use it
-        if display_name and display_name != email_address and "@" not in display_name:
-            # Clean up common suffixes that might be part of the display name but not the company
-            if " via " in display_name:
-                display_name = display_name.split(" via ")[0].strip()
-            if display_name.lower().endswith(" team"):
-                display_name = display_name[:-5].strip()
-            if display_name.lower().endswith(" hiring team"):
-                display_name = display_name[:-12].strip()
-            if display_name.lower().endswith(" alerts"):
-                display_name = display_name[:-7].strip()
+    # Handle display names like "Company Name <email@domain.com>"
+    if '<' in sender and '>' in sender:
+        # Extract display name
+        display_name_match = re.search(r'^([^<]+)', sender)
+        if display_name_match:
+            display_name = display_name_match.group(1).strip().strip('"').strip("'")
+
+            # Clean up common suffixes from display names
+            display_name = re.sub(r'\s+(team|hiring|recruitment|hr|support|noreply|no-reply)(\s|$)', r'\2', display_name, flags=re.IGNORECASE)
+            display_name = display_name.strip()
 
             print(f"🎯 Extracted company from display name: '{display_name}'")
-            return display_name
+
+            # Special handling for known patterns
+            if "from internshala" in display_name.lower() or "internshala" in display_name.lower():
+                return "Internshala"
+            elif "indeed" in display_name.lower():
+                return "Indeed"
+            elif "krish technolabs" in display_name.lower():
+                return "Krish TechnoLabs"
+            elif "2coms" in display_name.lower():
+                return "2COMS"
+
+            if display_name and display_name.lower() not in ["noreply", "no-reply", "support", "team", "hiring"]:
+                return display_name
 
         # Otherwise extract from email domain
         match = re.search(r'<([^>]+)>', sender)
@@ -48,9 +55,6 @@ def extract_domain_as_company_name(sender: str) -> str:
             print(f"⚠️ Skipped generic domain: {domain}")
             return "Generic"
 
-        # Handle subdomains - extract the main company domain
-        domain_parts = domain.split(".")
-
         # Common patterns for company domains
         known_company_domains = {
             "google.com": "Google",
@@ -64,7 +68,11 @@ def extract_domain_as_company_name(sender: str) -> str:
             "youtube.com": "Youtube",
             "instagram.com": "Instagram",
             "replit.com": "Replit",
-            "2coms.com": "2COMS"
+            "2coms.com": "2COMS",
+            "indeed.com": "Indeed",
+            "internshala.com": "Internshala",
+            "krishtechnolabs.com": "Krish TechnoLabs",
+            "kekamail.com": "Krish TechnoLabs"  # Common email service used by Krish
         }
 
         # Check if it's a known company domain (handles subdomains)
@@ -73,18 +81,15 @@ def extract_domain_as_company_name(sender: str) -> str:
                 print(f"🎯 Recognized company domain: {domain} -> {company_name}")
                 return company_name
 
-        # For other domains, if it has subdomains, try to extract the main domain
-        if len(domain_parts) >= 3:
-            # Extract last two parts (e.g., accounts.google.com -> google.com)
-            main_domain = ".".join(domain_parts[-2:])
-            company_name = domain_parts[-2].capitalize()
-            print(f"🔍 Extracted from subdomain: {domain} -> {company_name}")
-            return company_name
+        # For unknown domains, extract the main part
+        domain_parts = domain.split(".")
+        if len(domain_parts) >= 2:
+            main_domain = domain_parts[-2]  # Get the main domain name
+            return main_domain.capitalize()
         else:
-            # Regular domain, use first part
-            return domain_parts[0].capitalize()
+            return domain.capitalize()
 
-    print(f"⚠️ Could not parse domain from sender: {sender}")
+    print(f"⚠️ Could not extract company name from: {sender}")
     return "Unknown"
 
 # ✅ Batch extractor — uses the above

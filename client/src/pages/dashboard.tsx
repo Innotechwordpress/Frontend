@@ -332,7 +332,7 @@ export default function Dashboard() {
                                   Score: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
                                 </Badge>
                                 <Badge variant="outline" className="border-blue-400 text-blue-400 text-xs">
-                                  {credibilityData?.email_intent || credibilityData?.intent || 'Unknown Intent'}
+                                  {credibilityData?.intent || credibilityData?.email_intent || 'Unknown Intent'}
                                 </Badge>
                               </div>
                             </div>

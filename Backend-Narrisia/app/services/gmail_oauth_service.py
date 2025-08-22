@@ -13,6 +13,8 @@ import email.utils
 import asyncio
 import concurrent.futures
 import os # Import os module for accessing environment variables
+import re
+from html import unescape
 
 class GmailOAuthService:
     # Define SCOPES as a class attribute, assuming it's a list of strings
@@ -23,7 +25,7 @@ class GmailOAuthService:
         self.access_token = access_token if access_token else (stored_credentials.get('access_token') if stored_credentials else None)
         self.stored_credentials = stored_credentials
         self.service = None
-        
+
         # If we have an access token, create minimal credentials immediately
         if self.access_token:
             self._initialize_with_token()
@@ -124,7 +126,7 @@ class GmailOAuthService:
                     token=self.access_token,
                     scopes=self.SCOPES
                 )
-                
+
                 # Build Gmail service
                 self.service = build('gmail', 'v1', credentials=credentials)
                 logging.info("Gmail service initialized with access token")
@@ -197,20 +199,20 @@ class GmailOAuthService:
                     # If no unread found, try a broader search
                     if not messages:
                         logging.info("No unread messages found with primary query, trying broader search...")
-                        
+
                         # Try searching for recent emails (last 3 days)
                         import datetime
                         three_days_ago = (datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y/%m/%d')
-                        
+
                         results = service.users().messages().list(
                             userId='me',
                             q=f'in:inbox after:{three_days_ago}',
                             maxResults=20
                         ).execute()
-                        
+
                         messages = results.get('messages', [])
                         logging.info(f"Found {len(messages)} recent messages in last 3 days")
-                        
+
                         if not messages:
                             logging.info("No recent messages found either")
                             return []
@@ -228,17 +230,17 @@ class GmailOAuthService:
                             labels = msg.get('labelIds', [])
                             is_unread = 'UNREAD' in labels
                             is_inbox = 'INBOX' in labels
-                            
+
                             logging.info(f"Message {message['id']}: labels={labels}, unread={is_unread}, inbox={is_inbox}")
 
                             # Parse email data
                             email_data = self._parse_email_message(msg)
                             email_data['is_unread'] = is_unread
                             email_data['labels'] = labels
-                            
+
                             # For debugging, include all recent emails but mark their status
                             emails.append(email_data)
-                            
+
                         except Exception as msg_error:
                             logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
                             continue
@@ -246,7 +248,7 @@ class GmailOAuthService:
                     # Log summary of what we found
                     unread_count = sum(1 for email in emails if email.get('is_unread', False))
                     logging.info(f"Summary: {len(emails)} total emails, {unread_count} actually unread")
-                    
+
                     return emails
                 except HttpError as error:
                     logging.error(f"Gmail API error: {error}")
@@ -293,16 +295,16 @@ class GmailOAuthService:
         if sender_raw and sender_raw.strip():
             sender = sender_raw.strip()
             logging.info(f"Raw sender extracted: '{sender}'")
-            
+
             # Clean up sender format and extract meaningful company name
             if "<" in sender and ">" in sender:
                 # Format: "Company Name <email@domain.com>"
                 name_part = sender.split("<")[0].strip()
                 email_part = sender.split("<")[1].split(">")[0].strip()
-                
+
                 # Remove quotes if present
                 name_part = name_part.strip('"').strip("'")
-                
+
                 # Use company name if available and meaningful
                 if name_part and name_part != email_part and len(name_part) > 1:
                     # Clean up common email prefixes/suffixes
@@ -312,8 +314,18 @@ class GmailOAuthService:
                         name_part = name_part[:-5].strip()
                     if name_part.lower().endswith(" hiring team"):
                         name_part = name_part[:-12].strip()
-                    
-                    sender = f"{name_part} <{email_part}>"
+
+                    # Specific fixes for known platforms/companies
+                    if "Indeed" in name_part:
+                        company_name = "Indeed"
+                    elif "Internshala" in name_part:
+                        company_name = "Internshala"
+                    elif "Krish Technolabs" in name_part:
+                        company_name = "Krish Technolabs"
+                    else:
+                        company_name = name_part
+
+                    sender = f"{company_name} <{email_part}>"
                 else:
                     # Extract company from domain
                     if "@" in email_part:
@@ -324,6 +336,12 @@ class GmailOAuthService:
                             company_name = "Personal Gmail"
                         elif company_name.lower() == "outlook" or company_name.lower() == "hotmail":
                             company_name = "Personal Outlook"
+                        elif company_name.lower() == "indeed":
+                            company_name = "Indeed"
+                        elif company_name.lower() == "internshala":
+                            company_name = "Internshala"
+                        elif company_name.lower() == "krish Technolabs":
+                            company_name = "Krish Technolabs"
                         sender = f"{company_name} <{email_part}>"
                     else:
                         sender = f"Unknown <{email_part}>"
@@ -337,11 +355,17 @@ class GmailOAuthService:
                     company_name = "Personal Gmail"
                 elif company_name.lower() == "outlook" or company_name.lower() == "hotmail":
                     company_name = "Personal Outlook"
+                elif company_name.lower() == "indeed":
+                    company_name = "Indeed"
+                elif company_name.lower() == "internshala":
+                    company_name = "Internshala"
+                elif company_name.lower() == "krish Technolabs":
+                    company_name = "Krish Technolabs"
                 sender = f"{company_name} <{email_part}>"
             else:
                 # Fallback for unusual formats
                 sender = sender_raw
-            
+
             logging.info(f"Processed sender: '{sender}'")
         else:
             sender = "Unknown Sender"
@@ -370,7 +394,8 @@ class GmailOAuthService:
             "sender": sender,
             "date": date_obj.strftime("%a, %d %b %Y %H:%M:%S %z") if date_obj else "",
             "snippet": snippet,
-            "body": body
+            "body": body,
+            "intent": None # Default intent to None, will be updated later if identified
         }
 
     def _extract_body(self, payload: Dict) -> str:
@@ -380,22 +405,56 @@ class GmailOAuthService:
         if "parts" in payload:
             # Multipart message
             for part in payload["parts"]:
-                if part.get("mimeType") == "text/plain":
+                mime_type = part.get("mimeType")
+                if mime_type == "text/plain":
                     body_data = part.get("body", {}).get("data", "")
                     if body_data:
                         # Gmail API returns body data in base64url encoding
                         body = base64.urlsafe_b64decode(body_data + "===").decode("utf-8", errors="ignore")
                         break # Found plain text part, no need to check further
-                elif "parts" in part: # Recursively check nested parts
+                elif mime_type == "text/html":
+                    # If plain text not found yet, try to extract from HTML and clean it
+                    if not body:
+                        html_body_data = part.get("body", {}).get("data", "")
+                        if html_body_data:
+                            html_body = base64.urlsafe_b64decode(html_body_data + "===").decode("utf-8", errors="ignore")
+                            body = self._clean_html(html_body)
+                if "parts" in part: # Recursively check nested parts if no plain text is found
                     nested_body = self._extract_body(part)
                     if nested_body:
                         body = nested_body
                         break # Found plain text in nested part
         else:
             # Single part message
-            if payload.get("mimeType") == "text/plain":
+            mime_type = payload.get("mimeType")
+            if mime_type == "text/plain":
                 body_data = payload.get("body", {}).get("data", "")
                 if body_data:
                     body = base64.urlsafe_b64decode(body_data + "===").decode("utf-8", errors="ignore")
+            elif mime_type == "text/html":
+                # If plain text not found yet, try to extract from HTML and clean it
+                if not body:
+                    html_body_data = payload.get("body", {}).get("data", "")
+                    if html_body_data:
+                        html_body = base64.urlsafe_b64decode(html_body_data + "===").decode("utf-8", errors="ignore")
+                        body = self._clean_html(html_body)
 
         return body
+
+    def _clean_html(self, html_content: str) -> str:
+        """Cleans HTML content by removing tags and decoding entities."""
+        # Remove script and style elements
+        clean_text = re.sub(r'<script.*?</script>', '', html_content, flags=re.DOTALL)
+        clean_text = re.sub(r'<style.*?</style>', '', clean_text, flags=re.DOTALL)
+        # Remove HTML tags
+        clean_text = re.sub(r'<[^>]+>', '', clean_text)
+        # Decode HTML entities
+        clean_text = unescape(clean_text)
+        # Remove excessive whitespace
+        clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+        return clean_text
+
+def strip_html_tags(text):
+    """Helper function to strip HTML tags from a string."""
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)

@@ -144,8 +144,9 @@ async def trigger_auto_processing(raw_emails, oauth_token):
                     "business_verified": comprehensive_details.get("business_verified", True),
                     "employee_count": comprehensive_details.get("employee_count", raw_metrics.get("employee_count", 0)),
 
-                    # Email Analysis
+                    # Email Analysis (both field names for compatibility)
                     "email_intent": classification_model.intent,
+                    "intent": classification_model.intent,  # Added for frontend compatibility
                     "contact_quality": contact_quality,
                     "sender_domain": sender_domain,
                     "sender": sender,
