@@ -175,10 +175,10 @@ class GmailOAuthService:
 
             def fetch_messages():
                 try:
-                    # Search for unread emails in inbox (increased limit and better query)
+                    # Search for unread emails in primary inbox only
                     results = service.users().messages().list(
                         userId='me',
-                        q='is:unread in:inbox',
+                        q='is:unread in:inbox category:primary',
                         maxResults=50
                     ).execute()
 
@@ -241,37 +241,69 @@ class GmailOAuthService:
         headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
         subject = headers.get("Subject", "No Subject")
 
-        # Extract sender from headers (Gmail API stores it here)
-        sender_raw = headers.get("From") or headers.get("from") or headers.get("Sender") or headers.get("Return-Path")
+        # Extract sender from headers with better fallback logic
+        sender_raw = None
+        for header_key in ["From", "from", "Sender", "Return-Path", "Reply-To"]:
+            if header_key in headers and headers[header_key]:
+                sender_raw = headers[header_key]
+                break
 
         if sender_raw and sender_raw.strip():
             sender = sender_raw.strip()
             logging.info(f"Raw sender extracted: '{sender}'")
             
-            # Extract company name from sender
+            # Clean up sender format and extract meaningful company name
             if "<" in sender and ">" in sender:
                 # Format: "Company Name <email@domain.com>"
                 name_part = sender.split("<")[0].strip()
                 email_part = sender.split("<")[1].split(">")[0].strip()
                 
-                # Use company name if available, otherwise extract from domain
-                if name_part and name_part != email_part:
-                    company_name = name_part
+                # Remove quotes if present
+                name_part = name_part.strip('"').strip("'")
+                
+                # Use company name if available and meaningful
+                if name_part and name_part != email_part and len(name_part) > 1:
+                    # Clean up common email prefixes/suffixes
+                    if " via " in name_part:
+                        name_part = name_part.split(" via ")[0].strip()
+                    if name_part.lower().endswith(" team"):
+                        name_part = name_part[:-5].strip()
+                    if name_part.lower().endswith(" hiring team"):
+                        name_part = name_part[:-12].strip()
+                    
+                    sender = f"{name_part} <{email_part}>"
                 else:
                     # Extract company from domain
-                    domain = email_part.split("@")[-1]
-                    company_name = domain.split(".")[0].capitalize()
-                sender = f"{company_name} <{email_part}>"
+                    if "@" in email_part:
+                        domain = email_part.split("@")[-1]
+                        company_name = domain.split(".")[0].capitalize()
+                        # Handle common cases
+                        if company_name.lower() == "gmail":
+                            company_name = "Personal Gmail"
+                        elif company_name.lower() == "outlook" or company_name.lower() == "hotmail":
+                            company_name = "Personal Outlook"
+                        sender = f"{company_name} <{email_part}>"
+                    else:
+                        sender = f"Unknown <{email_part}>"
             elif "@" in sender:
                 # Just email address - extract company from domain
-                domain = sender.split("@")[-1]
+                email_part = sender.strip()
+                domain = email_part.split("@")[-1]
                 company_name = domain.split(".")[0].capitalize()
-                sender = f"{company_name} <{sender}>"
+                # Handle common cases
+                if company_name.lower() == "gmail":
+                    company_name = "Personal Gmail"
+                elif company_name.lower() == "outlook" or company_name.lower() == "hotmail":
+                    company_name = "Personal Outlook"
+                sender = f"{company_name} <{email_part}>"
+            else:
+                # Fallback for unusual formats
+                sender = sender_raw
             
             logging.info(f"Processed sender: '{sender}'")
         else:
             sender = "Unknown Sender"
-            logging.warning("No sender found in email headers")
+            logging.warning(f"No sender found in email headers. Available headers: {list(headers.keys())}")
 
         date_header = headers.get("Date", "")
 

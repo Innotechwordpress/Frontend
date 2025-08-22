@@ -1,4 +1,5 @@
 import re
+import logging
 
 # ✅ Single sender extraction
 def extract_domain_as_company_name(sender: str) -> str:
@@ -11,17 +12,27 @@ def extract_domain_as_company_name(sender: str) -> str:
     if not sender or sender.strip() == "" or sender == "Unknown Sender":
         print(f"⚠️ Empty or unknown sender provided: '{sender}'")
         return "Unknown"
-    
+
     # First try to extract company name from the sender display name
     if "<" in sender and ">" in sender:
         display_name = sender.split("<")[0].strip()
         email_address = sender.split("<")[1].split(">")[0].strip()
-        
+
         # If display name exists and is not just the email, use it
         if display_name and display_name != email_address and "@" not in display_name:
+            # Clean up common suffixes that might be part of the display name but not the company
+            if " via " in display_name:
+                display_name = display_name.split(" via ")[0].strip()
+            if display_name.lower().endswith(" team"):
+                display_name = display_name[:-5].strip()
+            if display_name.lower().endswith(" hiring team"):
+                display_name = display_name[:-12].strip()
+            if display_name.lower().endswith(" alerts"):
+                display_name = display_name[:-7].strip()
+
             print(f"🎯 Extracted company from display name: '{display_name}'")
             return display_name
-        
+
         # Otherwise extract from email domain
         match = re.search(r'<([^>]+)>', sender)
         email_address = match.group(1) if match else sender.strip()
