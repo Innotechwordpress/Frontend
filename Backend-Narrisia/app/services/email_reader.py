@@ -28,19 +28,22 @@ class EmailReader:
                 subject = subject.decode(encoding or "utf-8", errors="ignore")
 
             # Extract sender with better handling
-            sender_raw = msg.get("From", "Unknown")
-            sender = sender_raw
-
-            # Try to clean up sender format if it contains name and email
-            if "<" in sender_raw and ">" in sender_raw:
-                # Format: "Name <email@domain.com>" - keep as is for better display
-                sender = sender_raw
-            elif "@" in sender_raw:
-                # Just email address
-                sender = sender_raw
+            sender_raw = msg.get("From", "Unknown Sender")
+            
+            # Clean up sender format
+            if sender_raw and sender_raw != "Unknown Sender":
+                # Try to extract email from "Name <email@domain.com>" format
+                if "<" in sender_raw and ">" in sender_raw:
+                    # Keep the full format for display
+                    sender = sender_raw.strip()
+                elif "@" in sender_raw:
+                    # Just email address
+                    sender = sender_raw.strip()
+                else:
+                    # Fallback to raw sender
+                    sender = sender_raw.strip()
             else:
-                # Fallback
-                sender = sender_raw or "Unknown Sender"
+                sender = "Unknown Sender"
 
             # Decode date
             date_str = msg.get("Date")
@@ -56,7 +59,7 @@ class EmailReader:
                     content_type = part.get_content_type()
                     content_disposition = str(part.get("Content-Disposition"))
 
-                    if content_type == "text/plain" and "attachment" not not in content_disposition:
+                    if content_type == "text/plain" and "attachment" not in content_disposition:
                         try:
                             body = part.get_payload(decode=True).decode(
                                 part.get_content_charset() or "utf-8", errors="ignore"

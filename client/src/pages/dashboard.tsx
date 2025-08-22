@@ -322,7 +322,7 @@ export default function Dashboard() {
                             </div>
                             <div className="flex-1">
                               <h3 className="text-lg font-semibold text-white truncate">
-                                From: {email.sender || email.from || 'Unknown Sender'}
+                                From: {email.sender && email.sender.trim() !== '' ? email.sender : 'Unknown Sender'}
                               </h3>
                               <p className="text-sm text-gray-400 truncate">
                                 Subject: {email.subject || 'No Subject'}
@@ -424,7 +424,7 @@ export default function Dashboard() {
                 <div>
                   <h4 className="text-lg font-semibold text-green-400 mb-2">Sender</h4>
                   <p className="text-white bg-gray-800 p-3 rounded-lg">
-                    {selectedDialog.data.email.sender || 'Unknown Sender'}
+                    {selectedDialog.data.email.sender && selectedDialog.data.email.sender.trim() !== '' ? selectedDialog.data.email.sender : 'Unknown Sender'}
                   </p>
                 </div>
               </div>
