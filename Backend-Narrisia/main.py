@@ -341,7 +341,7 @@ async def get_unread_emails(request: Request):
         # Use the existing fetch endpoint
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"http://localhost:5000/fetch",
+                f"http://localhost:5000/fetch/fetch",
                 headers={"oauth-token": access_token}
             )
 
@@ -376,7 +376,7 @@ async def start_parsing(request: Request):
         # Use the existing processed fetch endpoint with longer timeout
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.get(
-                f"http://localhost:5000/fetch/processed",
+                f"http://localhost:5000/fetch/fetch/processed",
                 headers={"oauth-token": access_token}
             )
 
