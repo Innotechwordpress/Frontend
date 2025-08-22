@@ -14,11 +14,18 @@ class CompanyDetailsService:
         
         prompt = f"""
         Provide comprehensive details about the company '{company_name}'. 
-        Research and return accurate information in the following JSON format:
+        Use your knowledge of well-known companies and research accurate information.
+        
+        For reference:
+        - Wellfound (formerly AngelList Talent) is a recruitment technology platform for startups
+        - Internshala is an education technology platform for internships and training
+        - Naukri is a recruitment technology platform
+        
+        Return accurate information in the following JSON format:
 
         {{
             "company_name": "{company_name}",
-            "industry": "Technology/Finance/Healthcare/etc",
+            "industry": "Technology/Finance/Healthcare/Recruitment Technology/Education Technology/etc",
             "company_size": "Startup (1-50)/Small (51-200)/Medium (201-1000)/Large (1000+)",
             "founded": 2020,
             "market_cap": 1000000000,
@@ -40,6 +47,7 @@ class CompanyDetailsService:
         
         Provide realistic estimates based on publicly available information. 
         If exact data is not available, provide reasonable estimates based on company size and industry.
+        Be especially accurate about the industry classification - use "Recruitment Technology" for job/talent platforms.
         """
         
         try:
