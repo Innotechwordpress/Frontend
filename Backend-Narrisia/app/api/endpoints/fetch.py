@@ -15,11 +15,120 @@ import logging
 import asyncio
 import os # Import os module for environment variables
 from starlette.requests import Request # Import Request object
+import json # Import json for parsing API responses
 
 router = APIRouter()
 
+async def process_single_email(email, settings, oauth_token):
+    """Process a single email for company details, intent, and summary."""
+    try:
+        sender = email.get("sender", "")
+        subject = email.get("subject", "")
+        body = email.get("body", "") or email.get("snippet", "")
+
+        logging.info(f"📧 Processing: {sender[:50]}...")
+
+        # Use enhanced company extraction
+        from app.utils.extract import extract_company_name_from_email_content
+        company_name = extract_company_name_from_email_content(
+            sender=sender, subject=subject, body=body, email_data=email
+        )
+
+        # Simplified processing - make one combined OpenAI call instead of multiple
+        from openai import AsyncOpenAI
+        import httpx
+
+        client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, http_client=httpx.AsyncClient(timeout=15.0))
+
+        # Combined prompt for efficiency
+        combined_prompt = f"""
+        Analyze this email and provide a JSON response with:
+        1. Company analysis for "{company_name}"
+        2. Email intent classification
+        3. Brief email summary
+
+        Email from: {sender}
+        Subject: {subject}
+        Body: {body[:800]}
+
+        Respond ONLY with JSON:
+        {{
+          "company_analysis": {{
+            "company_name": "string",
+            "industry": "string", 
+            "credibility_score": 0-100,
+            "employee_count": number,
+            "founded_year": number,
+            "business_verified": boolean
+          }},
+          "email_intent": "job_application|business_inquiry|promotional|newsletter|other",
+          "email_summary": "1-2 sentence summary",
+          "intent_confidence": 0.0-1.0
+        }}
+        """
+
+        response = await client.chat.completions.create(
+            model=settings.MODEL,
+            messages=[{"role": "user", "content": combined_prompt}],
+            temperature=0.3,
+            max_tokens=300
+        )
+
+        try:
+            result_data = json.loads(response.choices[0].message.content.strip())
+            company_analysis = result_data.get("company_analysis", {})
+
+            return {
+                # Basic info
+                "company_name": company_analysis.get("company_name", company_name),
+                "industry": company_analysis.get("industry", "Unknown"),
+                "credibility_score": company_analysis.get("credibility_score", 50),
+                "employee_count": company_analysis.get("employee_count", 0),
+                "founded": company_analysis.get("founded_year", 2020),
+                "business_verified": company_analysis.get("business_verified", False),
+
+                # Email analysis
+                "intent": result_data.get("email_intent", "unknown"),
+                "email_intent": result_data.get("email_intent", "unknown"),
+                "email_summary": result_data.get("email_summary", body[:100] + "..."),
+                "intent_confidence": result_data.get("intent_confidence", 0.5),
+                "sender": sender,
+                "sender_domain": sender.split('@')[-1].split('>')[0] if '@' in sender else "Unknown",
+
+                # Default values for compatibility
+                "market_cap": 0,
+                "revenue": 0,
+                "funding_status": "Unknown",
+                "domain_age": 5,
+                "ssl_certificate": True,
+                "contact_quality": "Medium",
+                "business_relevant": True,
+                "sentiment_score": 0.5,
+                "certified": False,
+                "funded_by_top_investors": False,
+                "headquarters": "Unknown",
+                "company_gist": f"Company in {company_analysis.get('industry', 'Unknown')} industry",
+                "notes": "Fast processing mode"
+            }
+        except (json.JSONDecodeError, KeyError) as e:
+            logging.warning(f"Failed to parse OpenAI response for {company_name}: {e}")
+            # Fallback data
+            return {
+                "company_name": company_name,
+                "industry": "Unknown", 
+                "credibility_score": 50,
+                "intent": "unknown",
+                "email_summary": body[:100] + "..." if body else "No content",
+                "sender": sender,
+                "sender_domain": sender.split('@')[-1].split('>')[0] if '@' in sender else "Unknown"
+            }
+
+    except Exception as e:
+        logging.error(f"❌ Failed to process email: {e}")
+        return None
+
 async def trigger_auto_processing(raw_emails, oauth_token):
-    """Auto-process emails through research pipeline"""
+    """Auto-process emails through research pipeline concurrently"""
     try:
         # Validate OAuth token first
         if not oauth_token or oauth_token.strip() == "":
@@ -28,200 +137,22 @@ async def trigger_auto_processing(raw_emails, oauth_token):
         # Get settings for API keys
         from app.core.config import settings
 
-        # Initialize research engine and company details service
-        engine = ResearchEngine(
-            settings.OPENAI_API_KEY,
-            settings.SERPER_API_KEY,
-            settings.MODEL
-        )
+        # Process emails concurrently with limited concurrency
+        semaphore = asyncio.Semaphore(5)  # Limit to 5 concurrent requests
 
-        company_details_service = CompanyDetailsService(
-            settings.OPENAI_API_KEY,
-            settings.MODEL
-        )
+        async def process_with_semaphore(email):
+            async with semaphore:
+                return await process_single_email(email, settings, oauth_token)
 
-        results = []
-        for email in raw_emails:
-            try:
-                sender = email.get("sender", "")
-                subject = email.get("subject", "")
-                body = email.get("body", "") or email.get("snippet", "")
-                
-                logging.info(f"📧 Email raw data - ID: {email.get('id', 'N/A')}, Sender: '{sender}', Subject: '{subject}'")
-                
-                # Use enhanced company extraction that analyzes email content
-                from app.utils.extract import extract_company_name_from_email_content
-                company_name = extract_company_name_from_email_content(
-                    sender=sender,
-                    subject=subject,
-                    body=body,
-                    email_data=email
-                )
-                logging.info(f"🔍 Processing company: {company_name} from comprehensive analysis")
+        # Execute all email processing concurrently
+        tasks = [process_with_semaphore(email) for email in raw_emails]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                # Get comprehensive company details from OpenAI
-                comprehensive_details = await company_details_service.get_comprehensive_details(company_name)
+        # Filter out None results and exceptions
+        valid_results = [r for r in results if r is not None and not isinstance(r, Exception)]
 
-                # Research company and get credibility score
-                report = await engine.research_company(company_name)
-
-                # Use the body already extracted above
-                email_body = body
-
-                # Generate AI summary of email content
-                email_summary = ""
-                if email_body:
-                    try:
-                        from openai import AsyncOpenAI
-                        import httpx
-                        
-                        client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, http_client=httpx.AsyncClient(timeout=30.0))
-                        summary_prompt = f"""
-                        Please provide a concise, professional summary of this email content in 2-3 sentences. 
-                        Focus on the main purpose, key information, and any action items.
-                        
-                        Email content:
-                        {email_body[:1000]}  # Limit content to avoid token limits
-                        """
-                        
-                        summary_response = await client.chat.completions.create(
-                            model=settings.MODEL,
-                            messages=[{"role": "user", "content": summary_prompt}],
-                            temperature=0.3,
-                            max_tokens=150
-                        )
-                        
-                        email_summary = summary_response.choices[0].message.content.strip()
-                        logging.info(f"📝 Generated email summary for {company_name}: {email_summary[:100]}...")
-                        
-                    except Exception as summary_error:
-                        logging.warning(f"⚠️ Failed to generate email summary for {company_name}: {summary_error}")
-                        email_summary = email.get("snippet", "")[:200] + "..." if len(email.get("snippet", "")) > 200 else email.get("snippet", "")
-
-                # Classify email intent
-                try:
-                    classification = await classify_intent(
-                        email_body=email_body,
-                        openai_api_key=settings.OPENAI_API_KEY,
-                        model=settings.MODEL
-                    )
-
-                    if isinstance(classification, dict) and "intent" in classification:
-                        classification_model = EmailClassification(
-                            intent=classification["intent"],
-                            intent_confidence=classification["intent_confidence"],
-                            business_value=BusinessValue(**classification["business_value"]),
-                            notes=classification.get("notes")
-                        )
-                    else:
-                        raise ValueError("Invalid classification format")
-
-                except Exception as classify_error:
-                    logging.warning(f"⚠️ Classification failed for {company_name}: {classify_error}")
-                    classification_model = EmailClassification(
-                        intent="unknown",
-                        intent_confidence=0.0,
-                        business_value=BusinessValue(
-                            relevant=False,
-                            category="unknown",
-                            confidence=0.0
-                        ),
-                        notes="Classification failed."
-                    )
-
-                # Extract detailed company information
-                credibility_score = report.credibility.score if report.credibility else 0
-                raw_metrics = report.credibility.raw_metrics if report.credibility else {}
-                score_breakdown = report.credibility.score_breakdown if report.credibility else {}
-
-                # If we have comprehensive details, recalculate credibility score with better data
-                if comprehensive_details:
-                    from app.utils.credibility import compute_credibility_score
-
-                    # Calculate age from founded year
-                    current_year = 2024
-                    founded_year = comprehensive_details.get("founded", raw_metrics.get("founded_year"))
-                    age_years = current_year - founded_year if founded_year and isinstance(founded_year, int) else raw_metrics.get("age_years", 5)
-
-                    # Use comprehensive details with fallback to raw metrics
-                    enhanced_credibility_params = {
-                        "age_years": age_years,
-                        "market_cap": comprehensive_details.get("market_cap", raw_metrics.get("market_cap", 0)),
-                        "employees": comprehensive_details.get("employee_count", raw_metrics.get("employee_count", 100)),
-                        "domain_age": comprehensive_details.get("domain_age", raw_metrics.get("domain_age", 5)),
-                        "sentiment_score": comprehensive_details.get("sentiment_score", raw_metrics.get("sentiment_score", 0.5)),
-                        "certified": comprehensive_details.get("business_verified", raw_metrics.get("certified", False)),
-                        "funded_by_top_investors": len(comprehensive_details.get("investors", [])) > 0 or raw_metrics.get("funded_by_top_investors", False)
-                    }
-                    credibility_score, score_breakdown = compute_credibility_score(**enhanced_credibility_params)
-
-                # Calculate founded year from age_years if not available
-                current_year = 2024
-                founded_year = comprehensive_details.get("founded", raw_metrics.get("founded_year", current_year - raw_metrics.get("age_years", 0)))
-
-                # Determine contact quality based on credibility score and intent
-                contact_quality = "High" if credibility_score > 70 else "Medium" if credibility_score > 40 else "Low"
-
-                # Extract sender domain for analysis
-                sender_domain = sender.split('@')[-1].split('>')[0] if '@' in sender else "Unknown"
-
-                logging.info(f"✅ {company_name}: Credibility Score = {credibility_score}, Intent = {classification_model.intent}")
-
-                # Merge comprehensive details with analysis results
-                results.append({
-                    # Basic Company Info (from comprehensive details)
-                    "company_name": comprehensive_details.get("company_name", company_name),
-                    "industry": comprehensive_details.get("industry", "Unknown"),
-                    "company_size": comprehensive_details.get("company_size", "Unknown"),
-                    "founded": comprehensive_details.get("founded", founded_year),
-                    "market_cap": comprehensive_details.get("market_cap", raw_metrics.get("market_cap", 0)),
-                    "revenue": comprehensive_details.get("revenue", raw_metrics.get("revenue", 0)),
-                    "funding_status": comprehensive_details.get("funding_status", "Unknown"),
-                    "investors": comprehensive_details.get("investors", ["Unknown"]),
-
-                    # Technical Info
-                    "domain_age": comprehensive_details.get("domain_age", raw_metrics.get("domain_age", 0)),
-                    "ssl_certificate": comprehensive_details.get("ssl_certificate", True),
-                    "business_verified": comprehensive_details.get("business_verified", True),
-                    "employee_count": comprehensive_details.get("employee_count", raw_metrics.get("employee_count", 0)),
-
-                    # Email Analysis (both field names for compatibility)
-                    "email_intent": classification_model.intent,
-                    "intent": classification_model.intent,  # Added for frontend compatibility
-                    "contact_quality": contact_quality,
-                    "sender_domain": sender_domain,
-                    "sender": sender,
-
-                    # Scoring & Analysis
-                    "credibility_score": credibility_score,
-                    "business_relevant": classification_model.business_value.relevant,
-                    "intent_confidence": classification_model.intent_confidence,
-                    "business_value_confidence": classification_model.business_value.confidence,
-                    "sentiment_score": raw_metrics.get("sentiment_score", 0.5),
-                    "certified": raw_metrics.get("certified", False),
-                    "funded_by_top_investors": raw_metrics.get("funded_by_top_investors", False),
-
-                    # Enhanced Company Info
-                    "headquarters": comprehensive_details.get("headquarters", "Unknown"),
-                    "website": comprehensive_details.get("website", f"https://{company_name.lower()}.com"),
-                    "key_products": comprehensive_details.get("key_products", ["Unknown"]),
-                    "competitors": comprehensive_details.get("competitors", ["Unknown"]),
-                    "business_model": comprehensive_details.get("business_model", "Unknown"),
-                    "reputation_score": comprehensive_details.get("reputation_score", 0.5),
-
-                    # Additional Info
-                    "company_gist": comprehensive_details.get("description", report.company_profile.description if report.company_profile else "No description available"),
-                    "email_summary": email_summary,  # AI-generated email summary
-                    "score_breakdown": score_breakdown,
-                    "company_age_years": raw_metrics.get("age_years", 2024 - comprehensive_details.get("founded", 2020)),
-                    "notes": classification_model.notes or "No additional notes"
-                })
-
-            except Exception as e:
-                logging.error(f"❌ Failed to process email from '{email.get('sender', 'unknown')}': {e}")
-
-        logging.info(f"🎯 Auto-processing complete. Processed {len(results)} emails with credibility scores")
-        return results
+        logging.info(f"🎯 Fast processing complete. Processed {len(valid_results)} emails in parallel")
+        return valid_results
 
     except Exception as e:
         logging.error(f"❌ Auto-processing failed: {e}")
@@ -230,9 +161,9 @@ async def trigger_auto_processing(raw_emails, oauth_token):
 
 @router.get("/fetch", response_model=FetchEmailsResponse)
 async def fetch_unread_emails(
-        oauth_token: str = Header(
-            ..., alias="oauth-token"
-        ),  # Frontend must send the OAuth access token as 'oauth-token'
+    oauth_token: str = Header(
+        ..., alias="oauth-token"
+    ),  # Frontend must send the OAuth access token as 'oauth-token'
 ):
     """
     Fetch unread emails from Gmail using OAuth token and parse them for frontend.
@@ -266,11 +197,11 @@ async def get_weekly_email_count(
     """Get count of emails received this week"""
     if not oauth_token:
         raise HTTPException(status_code=401, detail="OAuth token required")
-    
+
     try:
         gmail_service = GmailOAuthService(access_token=oauth_token)
         weekly_count = await gmail_service.fetch_emails_this_week()
-        
+
         return {
             "weekly_count": weekly_count,
             "message": f"Found {weekly_count} emails this week"
@@ -289,15 +220,15 @@ async def get_processed_emails(
 
         # Extract OAuth token from Authorization header or oauth-token header
         oauth_token = None
-        
+
         # Try to get token from various header formats
         auth_header = request.headers.get("Authorization")
         if auth_header and auth_header.startswith("Bearer "):
             oauth_token = auth_header.split("Bearer ")[1]
-        
+
         if not oauth_token:
             oauth_token = request.headers.get("oauth-token")
-        
+
         if not oauth_token:
             logging.warning("No OAuth token found in request headers")
             # Return empty result instead of mock data
@@ -311,9 +242,9 @@ async def get_processed_emails(
         # Initialize Gmail service and fetch real emails
         gmail_service = GmailOAuthService(access_token=oauth_token)
         raw_emails = await gmail_service.fetch_unread_emails()
-        
+
         logging.info(f"📧 Retrieved {len(raw_emails)} emails from Gmail API")
-        
+
         if not raw_emails:
             return {
                 "emails": [],
@@ -324,7 +255,7 @@ async def get_processed_emails(
 
         # Process emails through the auto-processing pipeline
         processed_results = await trigger_auto_processing(raw_emails, oauth_token)
-        
+
         return {
             "emails": raw_emails,
             "count": len(raw_emails),

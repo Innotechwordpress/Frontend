@@ -171,13 +171,13 @@ class GmailOAuthService:
 
 
     async def fetch_unread_emails(self) -> List[Dict]:
-        """Fetch unread emails from Gmail"""
+        """Fetch unread emails from Gmail primary inbox only"""
         try:
-            # Get list of unread messages
-            query = "is:unread"
+            # Get list of unread messages from primary inbox only
+            query = "is:unread in:primary"
 
-            # Use a reasonable batch size to avoid overwhelming the API
-            batch_size = 50
+            # Limit to only 20 emails for faster processing
+            batch_size = 20
 
             response = await self._make_request(
                 "GET",
@@ -207,20 +207,25 @@ class GmailOAuthService:
                     if msg_response:
                         msg = msg_response
 
-                        # Check if message is actually unread
+                        # Check if message is actually unread and in primary inbox
                         labels = msg.get('labelIds', [])
                         is_unread = 'UNREAD' in labels
                         is_inbox = 'INBOX' in labels
+                        is_primary = 'CATEGORY_PRIMARY' in labels or (
+                            'CATEGORY_SOCIAL' not in labels and 
+                            'CATEGORY_PROMOTIONS' not in labels and 
+                            'CATEGORY_UPDATES' not in labels and 
+                            'CATEGORY_FORUMS' not in labels
+                        )
 
-                        logging.info(f"Message {message['id']}: labels={labels}, unread={is_unread}, inbox={is_inbox}")
+                        logging.info(f"Message {message['id']}: labels={labels}, unread={is_unread}, inbox={is_inbox}, primary={is_primary}")
 
-                        # Parse email data
-                        email_data = self._parse_email_message(msg)
-                        email_data['is_unread'] = is_unread
-                        email_data['labels'] = labels
-
-                        # Only include actually unread emails
-                        if is_unread:
+                        # Only include unread emails from primary inbox
+                        if is_unread and is_inbox and is_primary:
+                            # Parse email data
+                            email_data = self._parse_email_message(msg)
+                            email_data['is_unread'] = is_unread
+                            email_data['labels'] = labels
                             emails.append(email_data)
 
                 except Exception as msg_error:
@@ -247,9 +252,9 @@ class GmailOAuthService:
             start_of_week = today - timedelta(days=today.weekday())
             start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
 
-            # Format date for Gmail query (use different format)
+            # Format date for Gmail query (use different format) - primary inbox only
             query_date = start_of_week.strftime("%Y/%m/%d")
-            query = f"in:inbox after:{query_date}"
+            query = f"in:primary after:{query_date}"
 
             logging.info(f"📊 Fetching emails from this week starting {query_date}")
 
