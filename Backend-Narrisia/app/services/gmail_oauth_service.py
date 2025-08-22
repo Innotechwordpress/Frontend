@@ -52,10 +52,10 @@ class GmailOAuthService:
 
             def fetch_messages():
                 try:
-                    # Search for unread emails in inbox only
+                    # Search for unread emails in primary inbox only (excludes promotions, social, updates tabs)
                     results = service.users().messages().list(
                         userId='me', 
-                        q='is:unread in:inbox',
+                        q='is:unread in:inbox category:primary',
                         maxResults=10
                     ).execute()
 
