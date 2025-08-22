@@ -211,18 +211,32 @@ async def google_callback(request: Request, code: str = None, state: str = None)
     try:
         # Exchange authorization code for access token
         token_url = "https://oauth2.googleapis.com/token"
+        
+        # Build the exact redirect URI that was used in the auth request
+        protocol = "https" if request.headers.get("x-forwarded-proto") == "https" else "http"
+        host = request.headers.get("host")
+        redirect_uri = f"{protocol}://{host}/api/auth/google/callback"
+        
         token_data = {
             'client_id': settings.GOOGLE_CLIENT_ID,
             'client_secret': settings.GOOGLE_CLIENT_SECRET,
             'code': code,
             'grant_type': 'authorization_code',
-            'redirect_uri': f"{request.base_url}api/auth/google/callback"
+            'redirect_uri': redirect_uri
         }
+
+        print(f"🔧 OAuth Debug - Redirect URI: {redirect_uri}")
+        print(f"🔧 OAuth Debug - Client ID: {settings.GOOGLE_CLIENT_ID[:20]}...")
+        print(f"🔧 OAuth Debug - Has Client Secret: {'Yes' if settings.GOOGLE_CLIENT_SECRET else 'No'}")
+        print(f"🔧 OAuth Debug - Code length: {len(code) if code else 0}")
 
         async with httpx.AsyncClient() as client:
             token_response = await client.post(token_url, data=token_data)
             if token_response.status_code != 200:
-                raise HTTPException(status_code=400, detail="Failed to exchange authorization code")
+                error_details = token_response.text
+                print(f"❌ Google OAuth token exchange failed: {token_response.status_code}")
+                print(f"❌ Error response: {error_details}")
+                raise HTTPException(status_code=400, detail=f"Failed to exchange authorization code: {error_details}")
 
             token_info = token_response.json()
             access_token = token_info.get('access_token')
