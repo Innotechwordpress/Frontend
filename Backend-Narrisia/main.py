@@ -271,7 +271,7 @@ async def google_callback(request: Request, code: str = None, state: str = None)
             }
 
             print(f"✅ User session created for: {user_info.get('email')}")
-            return RedirectResponse(url="/dashboard")
+            return RedirectResponse(url="/")
 
     except Exception as e:
         print(f"OAuth callback error: {e}")
