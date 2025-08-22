@@ -223,12 +223,12 @@ class GmailOAuthService:
                         emails.append(email_data)
 
                     except Exception as msg_error:
-                        logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
-                        continue
+                    logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
+                    continue
 
-                # Log summary of what we found
-                unread_count = sum(1 for email in emails if email.get('is_unread', False))
-                logging.info(f"Summary: {len(emails)} total emails, {unread_count} actually unread")
+            # Log summary of what we found
+            unread_count = sum(1 for email in emails if email.get('is_unread', False))
+            logging.info(f"Summary: {len(emails)} total emails, {unread_count} actually unread")
 
             return emails
 
