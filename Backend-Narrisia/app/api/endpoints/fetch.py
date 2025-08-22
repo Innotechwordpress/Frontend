@@ -42,6 +42,7 @@ async def trigger_auto_processing(raw_emails, oauth_token):
         for email in raw_emails:
             try:
                 sender = email.get("sender", "")
+                logging.info(f"📧 Email raw data - ID: {email.get('id', 'N/A')}, Sender: '{sender}', Subject: '{email.get('subject', 'N/A')}'")
                 company_name = extract_domain_as_company_name(sender)
                 logging.info(f"🔍 Processing company: {company_name} from sender: {sender}")
 

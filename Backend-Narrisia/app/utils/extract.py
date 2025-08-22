@@ -7,6 +7,10 @@ def extract_domain_as_company_name(sender: str) -> str:
     E.g., "John <john@pictory.ai>" -> "Pictory"
     E.g., "Google <no-reply@accounts.google.com>" -> "Google"
     """
+    if not sender or sender.strip() == "" or sender == "Unknown Sender":
+        print(f"⚠️ Empty or unknown sender provided: '{sender}'")
+        return "Unknown"
+    
     match = re.search(r'<([^>]+)>', sender)
     email_address = match.group(1) if match else sender.strip()
 

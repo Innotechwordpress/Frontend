@@ -113,12 +113,10 @@ class GmailOAuthService:
         """Parse a single email message from Gmail API response"""
         headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
         subject = headers.get("Subject", "No Subject")
-        # Extract sender with better handling
-        sender_raw = msg.get("From")
-        if not sender_raw:
-            # Try alternative headers
-            sender_raw = msg.get("from") or msg.get("FROM") or msg.get("Sender")
-
+        
+        # Extract sender from headers (Gmail API stores it here)
+        sender_raw = headers.get("From") or headers.get("from") or headers.get("Sender") or headers.get("Return-Path")
+        
         if sender_raw and sender_raw.strip():
             sender = sender_raw.strip()
             # Clean up sender format if it contains name and email
@@ -127,7 +125,7 @@ class GmailOAuthService:
             elif "@" in sender:
                 sender = sender  # Just email address
             else:
-                sender = sender or "Unknown Sender"
+                sender = sender if sender else "Unknown Sender"
         else:
             sender = "Unknown Sender"
 

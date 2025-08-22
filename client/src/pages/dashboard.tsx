@@ -19,7 +19,7 @@ export default function Dashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [credibilityAnalysis, setCredibilityAnalysis] = useState([]);
   const [selectedDialog, setSelectedDialog] = useState<{
-    type: 'subject' | 'credibility' | 'intent';
+    type: 'subject' | 'credibility' | 'intent_summary';
     data: any;
   } | null>(null);
 
@@ -155,7 +155,7 @@ export default function Dashboard() {
     );
   };
 
-  const openDialog = (type: 'subject' | 'credibility' | 'intent', data: any) => {
+  const openDialog = (type: 'subject' | 'credibility' | 'intent_summary', data: any) => {
     setSelectedDialog({ type, data });
   };
 
@@ -348,21 +348,21 @@ export default function Dashboard() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 w-56">
                                 <DropdownMenuItem 
-                                  onClick={() => openDialog('subject', { email, credibilityData })}
+                                  onClick={() => openDialog('subject', { email, analysis: credibilityData })}
                                   className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
                                 >
                                   <Mail className="mr-2 h-4 w-4" />
                                   Subject & Body
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
-                                  onClick={() => openDialog('credibility', { email, credibilityData })}
+                                  onClick={() => openDialog('credibility', { email, analysis: credibilityData })}
                                   className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
                                 >
                                   <Shield className="mr-2 h-4 w-4" />
                                   Company Credibility
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
-                                  onClick={() => openDialog('intent', { email, credibilityData })}
+                                  onClick={() => openDialog('intent_summary', { email, analysis: credibilityData })}
                                   className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
                                 >
                                   <Bot className="mr-2 h-4 w-4" />
@@ -389,8 +389,7 @@ export default function Dashboard() {
                 <DialogTitle className="text-xl">
                   {selectedDialog?.type === 'subject' && "Email Subject & Body"}
                   {selectedDialog?.type === 'credibility' && "Company Credibility Analysis"}
-                  {selectedDialog?.type === 'intent' && "Intent & AI Summary"}
-                  {selectedDialog?.type === 'summary' && "AI Summary"}
+                  {selectedDialog?.type === 'intent_summary' && "Intent & AI Summary"}
                 </DialogTitle>
                 <Button variant="ghost" onClick={closeDialog} className="h-8 w-8 p-0">
                   <X className="h-4 w-4" />
@@ -425,45 +424,45 @@ export default function Dashboard() {
 
             {selectedDialog?.type === 'credibility' && (
               <div className="space-y-4">
-                {selectedDialog.data.credibilityData ? (
+                {selectedDialog.data.analysis ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
                       <h4 className="text-sm font-semibold text-white mb-3">Market Cap</h4>
                       <p className="text-white">
-                        {selectedDialog.data.credibilityData.market_cap ? 
-                          (typeof selectedDialog.data.credibilityData.market_cap === 'number' ? 
-                            `$${(selectedDialog.data.credibilityData.market_cap / 1000000000).toFixed(1)}B` : 
-                            selectedDialog.data.credibilityData.market_cap) : 
+                        {selectedDialog.data.analysis.market_cap ? 
+                          (typeof selectedDialog.data.analysis.market_cap === 'number' ? 
+                            `$${(selectedDialog.data.analysis.market_cap / 1000000000).toFixed(1)}B` : 
+                            selectedDialog.data.analysis.market_cap) : 
                           'N/A'}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
                       <h4 className="text-sm font-semibold text-white mb-3">Domain Age</h4>
                       <p className="text-white">
-                        {selectedDialog.data.credibilityData.domain_age ? `${selectedDialog.data.credibilityData.domain_age} years` : 'Unknown'}
+                        {selectedDialog.data.analysis.domain_age ? `${selectedDialog.data.analysis.domain_age} years` : 'Unknown'}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
                       <h4 className="text-sm font-semibold text-white mb-3">Funding Status</h4>
-                      <p className="text-white">{selectedDialog.data.credibilityData.funding_status || 'Unknown'}</p>
+                      <p className="text-white">{selectedDialog.data.analysis.funding_status || 'Unknown'}</p>
                     </div>
                     <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
                       <h4 className="text-sm font-semibold text-white mb-3">Employee Count</h4>
-                      <p className="text-white">{selectedDialog.data.credibilityData.employee_count || 'Unknown'}</p>
+                      <p className="text-white">{selectedDialog.data.analysis.employee_count || 'Unknown'}</p>
                     </div>
                     <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
                       <h4 className="text-sm font-semibold text-white mb-3">Business Verified</h4>
-                      <p className={`${selectedDialog.data.credibilityData.business_verified ? 'text-green-400' : 'text-red-400'}`}>
-                        {selectedDialog.data.credibilityData.business_verified ? 'Yes' : 'No'}
+                      <p className={`${selectedDialog.data.analysis.business_verified ? 'text-green-400' : 'text-red-400'}`}>
+                        {selectedDialog.data.analysis.business_verified ? 'Yes' : 'No'}
                       </p>
                     </div>
                     <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
                       <h4 className="text-sm font-semibold text-white mb-3">Overall Score</h4>
                       <div className="flex items-center gap-2">
                         <span className="text-xl font-bold text-green-400">
-                          {selectedDialog.data.credibilityData.credibility_score || 0}/100
+                          {selectedDialog.data.analysis.credibility_score || 0}/100
                         </span>
-                        <Progress value={selectedDialog.data.credibilityData.credibility_score || 0} className="h-2 flex-1" />
+                        <Progress value={selectedDialog.data.analysis.credibility_score || 0} className="h-2 flex-1" />
                       </div>
                     </div>
                   </div>
@@ -473,126 +472,34 @@ export default function Dashboard() {
               </div>
             )}
 
-            {selectedDialog?.type === 'intent' && (
+            {selectedDialog?.type === 'intent_summary' && (
               <div className="space-y-4">
-                {/* Intent Analysis Section */}
-                <div className="border-b border-gray-600 pb-4">
-                  <h3 className="text-lg font-bold text-green-400 mb-3">📧 Email Intent Analysis</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                      <h4 className="text-sm font-semibold text-white mb-2">Email Intent</h4>
-                      <p className="text-white text-lg">
-                        {selectedDialog.data.credibilityData?.email_intent || selectedDialog.data.credibilityData?.intent_classification || 'Unknown'}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                      <h4 className="text-sm font-semibold text-white mb-2">Intent Confidence</h4>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white">
-                          {selectedDialog.data.credibilityData?.intent_confidence ? 
-                            `${(selectedDialog.data.credibilityData.intent_confidence * 100).toFixed(1)}%` : 
-                            'N/A'}
-                        </span>
-                        {selectedDialog.data.credibilityData?.intent_confidence && (
-                          <Progress value={selectedDialog.data.credibilityData.intent_confidence * 100} className="h-2 flex-1" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                      <h4 className="text-sm font-semibold text-white mb-2">Business Relevance</h4>
-                      <p className={`text-lg ${selectedDialog.data.credibilityData?.business_relevant ? 'text-green-400' : 'text-red-400'}`}>
-                        {selectedDialog.data.credibilityData?.business_relevant ? 'Relevant' : 'Not Relevant'}
-                      </p>
-                    </div>
-                    {selectedDialog.data.credibilityData?.notes && (
-                      <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                        <h4 className="text-sm font-semibold text-white mb-2">Analysis Notes</h4>
-                        <p className="text-white text-sm">{selectedDialog.data.credibilityData.notes}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* AI Summary Section */}
                 <div>
-                  <h3 className="text-lg font-bold text-blue-400 mb-3">🤖 AI Summary</h3>
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                      <h4 className="text-sm font-semibold text-white mb-2">Company AI Summary</h4>
-                      <p className="text-white">
-                        {selectedDialog.data.credibilityData?.company_gist || 
-                         selectedDialog.data.credibilityData?.summary || 
-                         'No company summary available'}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                      <h4 className="text-sm font-semibold text-white mb-2">Email AI Summary</h4>
-                      <p className="text-white">
-                        {selectedDialog.data.email.snippet || 'No email summary available'}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                      <h4 className="text-sm font-semibold text-white mb-2">Company Overview</h4>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <span className="text-gray-400">Company:</span>
-                          <span className="text-white ml-2">{selectedDialog.data.credibilityData?.company_name || 'Unknown'}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Industry:</span>
-                          <span className="text-white ml-2">{selectedDialog.data.credibilityData?.industry || 'Unknown'}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Size:</span>
-                          <span className="text-white ml-2">{selectedDialog.data.credibilityData?.company_size || 'Unknown'}</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Founded:</span>
-                          <span className="text-white ml-2">{selectedDialog.data.credibilityData?.founded || 'Unknown'}</span>
-                        </div>
-                      </div>
-                    </div>
+                  <h4 className="text-lg font-semibold text-green-400 mb-2">Email Intent</h4>
+                  <p className="text-white bg-gray-800 p-3 rounded-lg">
+                    {selectedDialog.data.analysis?.intent || 'No intent analysis available'}
+                  </p>
+                  <div className="mt-2">
+                    <span className="text-sm text-gray-400">
+                      Confidence: {selectedDialog.data.analysis?.intent_confidence ? 
+                        `${(selectedDialog.data.analysis.intent_confidence * 100).toFixed(1)}%` : 
+                        'N/A'}
+                    </span>
                   </div>
                 </div>
-              </div>
-            )}
 
-            {selectedDialog?.type === 'summary' && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                  <h4 className="text-lg font-semibold text-white mb-3">Company AI Summary</h4>
-                  <p className="text-white">
-                    {selectedDialog.data.credibilityData?.company_gist || 
-                     selectedDialog.data.credibilityData?.summary || 
-                     'No company summary available'}
+                <div>
+                  <h4 className="text-lg font-semibold text-green-400 mb-2">Company AI Summary</h4>
+                  <p className="text-white bg-gray-800 p-3 rounded-lg">
+                    {selectedDialog.data.analysis?.company_gist || 'No company summary available'}
                   </p>
                 </div>
-                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                  <h4 className="text-lg font-semibold text-white mb-3">Email AI Summary</h4>
-                  <p className="text-white">
-                    {selectedDialog.data.email.snippet || 'No email summary available'}
+
+                <div>
+                  <h4 className="text-lg font-semibold text-green-400 mb-2">Email Summary</h4>
+                  <p className="text-white bg-gray-800 p-3 rounded-lg">
+                    {selectedDialog.data.email?.snippet || 'No email summary available'}
                   </p>
-                </div>
-                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                  <h4 className="text-lg font-semibold text-white mb-3">Company Overview</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-400">Company:</span>
-                      <span className="text-white ml-2">{selectedDialog.data.credibilityData?.company_name || 'Unknown'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Industry:</span>
-                      <span className="text-white ml-2">{selectedDialog.data.credibilityData?.industry || 'Unknown'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Size:</span>
-                      <span className="text-white ml-2">{selectedDialog.data.credibilityData?.company_size || 'Unknown'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Founded:</span>
-                      <span className="text-white ml-2">{selectedDialog.data.credibilityData?.founded || 'Unknown'}</span>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
