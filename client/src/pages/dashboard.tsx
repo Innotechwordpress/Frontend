@@ -1,13 +1,16 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import { TrendingUp, Users, Target, Zap, BarChart3, Calendar, Activity, ArrowRight, Brain, Rocket, Shield, Building } from "lucide-react";
+import { TrendingUp, Users, Target, Zap, BarChart3, Calendar, Activity, ArrowRight, Brain, Rocket, Shield, Building, MoreVertical, X, Mail, Briefcase, FileText, Bot } from "lucide-react";
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth();
@@ -16,6 +19,10 @@ export default function Dashboard() {
   const [unreadEmails, setUnreadEmails] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [credibilityAnalysis, setCredibilityAnalysis] = useState([]);
+  const [selectedDialog, setSelectedDialog] = useState<{
+    type: 'subject' | 'credibility' | 'intent' | 'summary';
+    data: any;
+  } | null>(null);
 
   // Update time every minute for live greeting
   useEffect(() => {
@@ -110,8 +117,6 @@ export default function Dashboard() {
     }
   ];
 
-
-
   const stats = [
     {
       title: "Total Mail",
@@ -142,6 +147,22 @@ export default function Dashboard() {
       color: "text-yellow-400"
     }
   ];
+
+  // Helper function to find credibility analysis for an email
+  const findCredibilityForEmail = (email: any) => {
+    return credibilityAnalysis.find((analysis: any) => 
+      analysis.sender === email.sender || 
+      analysis.sender_domain === email.sender?.split('@')[1]?.split('>')[0]
+    );
+  };
+
+  const openDialog = (type: 'subject' | 'credibility' | 'intent' | 'summary', data: any) => {
+    setSelectedDialog({ type, data });
+  };
+
+  const closeDialog = () => {
+    setSelectedDialog(null);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -197,98 +218,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        {/* Credibility Meter Section */}
-        <div className="mb-8">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-green-400 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5" />
-                Credibility Meter
-              </CardTitle>
-              <CardDescription>
-                Trust and reliability indicators for business assessment
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Market Cap</span>
-                    <TrendingUp className="h-4 w-4 text-green-400" />
-                  </div>
-                  <div className="text-xl font-bold text-white">$0.15B</div>
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Employees</span>
-                    <Users className="h-4 w-4 text-blue-400" />
-                  </div>
-                  <div className="text-xl font-bold text-white">50</div>
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Domain Age</span>
-                    <Calendar className="h-4 w-4 text-purple-400" />
-                  </div>
-                  <div className="text-xl font-bold text-white">7 years</div>
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Sentiment Score</span>
-                    <Activity className="h-4 w-4 text-orange-400" />
-                  </div>
-                  <div className="text-xl font-bold text-white">0.75</div>
-                  <Progress value={75} className="mt-2 h-2" />
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Certified</span>
-                    <Shield className="h-4 w-4 text-red-400" />
-                  </div>
-                  <div className="text-xl font-bold text-white">No</div>
-                  <Badge variant="outline" className="border-red-400 text-red-400 mt-2">
-                    Not Certified
-                  </Badge>
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Top Investors</span>
-                    <TrendingUp className="h-4 w-4 text-red-400" />
-                  </div>
-                  <div className="text-xl font-bold text-white">No</div>
-                  <Badge variant="outline" className="border-red-400 text-red-400 mt-2">
-                    Not Funded
-                  </Badge>
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Company Age</span>
-                    <Calendar className="h-4 w-4 text-cyan-400" />
-                  </div>
-                  <div className="text-xl font-bold text-white">9 years</div>
-                </div>
-
-                <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 md:col-span-2 lg:col-span-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-400">Connected Email Account</span>
-                    <Activity className="h-4 w-4 text-green-400" />
-                  </div>
-                  <div className="text-xl font-bold text-green-400">{user.email}</div>
-                  <div className="text-sm text-gray-400 mt-1">
-                    Account: {user.firstName} {user.lastName} • Role: {user.role}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Email Research & Classification Section */}
@@ -362,269 +291,270 @@ export default function Dashboard() {
                     <div className="text-lg font-bold text-white">{unreadCount}</div>
                     <div className="text-xs text-green-400">Unread emails</div>
                   </div>
-                  {/* Render company names and intents from credibility analysis */}
-                  {credibilityAnalysis.length > 0 ? (
-                    credibilityAnalysis.map((analysis: any, index: number) => (
-                      <div key={index} className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-gray-400">Company</span>
-                          <Target className="h-4 w-4 text-blue-400" />
-                        </div>
-                        <div className="text-lg font-bold text-white truncate" title={analysis.company_name}>
-                          {analysis.company_name || 'Unknown Company'}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          Intent: <span className="text-blue-400">{analysis.email_intent || analysis.intent_classification || analysis.intent || 'Unknown'}</span>
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Credibility: <span className="text-green-400">{analysis.credibility_score || 0}/100</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : unreadCount > 0 ? (
-                    <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 md:col-span-2 lg:col-span-4">
-                      <p className="text-center text-gray-400">
-                        Click "Start Parsing" to analyze company information and credibility scores.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50 md:col-span-2 lg:col-span-4">
-                      <p className="text-center text-gray-400">
-                        No unread emails found.
-                      </p>
-                    </div>
-                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Company Credibility Analysis Section */}
-        {credibilityAnalysis.length > 0 && (
+        {/* Individual Email Cards Section */}
+        {unreadEmails.length > 0 && (
           <div className="mb-8">
             <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
                 <CardTitle className="text-purple-400 flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  Company Credibility Analysis
+                  <Mail className="w-5 h-5" />
+                  Individual Email Analysis
                 </CardTitle>
                 <CardDescription>
-                  AI-powered credibility scores and company intelligence
+                  Detailed analysis for each email
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(() => {
-                    // Group by company name and keep only unique companies
-                    const uniqueCompanies = credibilityAnalysis.reduce((acc: any[], analysis: any) => {
-                      const existingCompany = acc.find(item => item.company_name === analysis.company_name);
-                      if (!existingCompany) {
-                        acc.push(analysis);
-                      }
-                      return acc;
-                    }, []);
-
-                    return uniqueCompanies.map((analysis: any, index: number) => (
-                      <div key={index} className="border border-gray-700 rounded-lg bg-gray-800/30">
-                        <details className="group">
-                          <summary className="flex cursor-pointer items-center justify-between p-4 hover:bg-gray-800/50 rounded-lg transition-colors">
-                            <div className="flex items-center gap-3">
-                              <div className="p-2 rounded-lg bg-purple-400/10">
-                                <Building className="h-5 w-5 text-purple-400" />
-                              </div>
-                              <div>
-                                <h3 className="text-lg font-semibold text-white">
-                                  {analysis.company_name || 'Unknown Company'}
-                                </h3>
-                                <div className="flex items-center gap-4 mt-1">
-                                  <Badge variant="outline" className="border-green-400 text-green-400">
-                                    Score: {analysis.credibility_score || 0}/100
-                                  </Badge>
-                                  <Badge variant="outline" className="border-blue-400 text-blue-400">
-                                    {analysis.email_intent || analysis.intent_classification || 'Unknown Intent'}
-                                  </Badge>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`${
-                                      analysis.risk_level === 'LOW' ? 'border-green-400 text-green-400' :
-                                      analysis.risk_level === 'MEDIUM' ? 'border-yellow-400 text-yellow-400' :
-                                      'border-red-400 text-red-400'
-                                    }`}
-                                  >
-                                    Risk: {analysis.risk_level || 'Unknown'}
-                                  </Badge>
-                                </div>
-                              </div>
+                  {unreadEmails.map((email: any, index: number) => {
+                    const credibilityData = findCredibilityForEmail(email);
+                    return (
+                      <div key={index} className="border border-gray-700 rounded-lg bg-gray-800/30 p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="p-2 rounded-lg bg-blue-400/10">
+                              <Mail className="h-5 w-5 text-blue-400" />
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-gray-400">View Details</span>
-                              <svg 
-                                className="h-5 w-5 text-gray-400 group-open:rotate-180 transition-transform" 
-                                fill="none" 
-                                stroke="currentColor" 
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </div>
-                          </summary>
-                          
-                          <div className="p-4 pt-0">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                              {/* Company Overview */}
-                              <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                                  <Building className="h-4 w-4 text-blue-400" />
-                                  Company Overview
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Company Name:</span>
-                                    <span className="text-white">{analysis.company_name || 'N/A'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Industry:</span>
-                                    <span className="text-white">{analysis.industry || 'Unknown'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Company Size:</span>
-                                    <span className="text-white">{analysis.company_size || 'Unknown'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Founded:</span>
-                                    <span className="text-white">{analysis.founded || analysis.founded_year || 'Unknown'}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Financial Metrics */}
-                              <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                                  <TrendingUp className="h-4 w-4 text-green-400" />
-                                  Financial Metrics
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Market Cap:</span>
-                                    <span className="text-white">
-                                      {analysis.market_cap ? 
-                                        (typeof analysis.market_cap === 'number' ? 
-                                          `$${(analysis.market_cap / 1000000000).toFixed(1)}B` : 
-                                          analysis.market_cap) : 
-                                        'N/A'}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Revenue:</span>
-                                    <span className="text-white">
-                                      {analysis.revenue ? 
-                                        (typeof analysis.revenue === 'number' ? 
-                                          `$${(analysis.revenue / 1000000000).toFixed(1)}B` : 
-                                          analysis.revenue) : 
-                                        'N/A'}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Funding Status:</span>
-                                    <span className="text-white">{analysis.funding_status || 'Unknown'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Investors:</span>
-                                    <span className="text-white">
-                                      {analysis.investors && analysis.investors.length > 0 ? 
-                                        (Array.isArray(analysis.investors) ? analysis.investors.join(', ') : analysis.investors) : 
-                                        analysis.top_investors || 'None Listed'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Credibility Factors */}
-                              <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                                  <Shield className="h-4 w-4 text-purple-400" />
-                                  Credibility Factors
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Domain Age:</span>
-                                    <span className="text-white">{analysis.domain_age ? `${analysis.domain_age} years` : 'Unknown'}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">SSL Certificate:</span>
-                                    <span className={`${analysis.ssl_certificate ? 'text-green-400' : 'text-red-400'}`}>
-                                      {analysis.ssl_certificate ? 'Valid' : 'Invalid/Missing'}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Business Verified:</span>
-                                    <span className={`${analysis.business_verified ? 'text-green-400' : 'text-red-400'}`}>
-                                      {analysis.business_verified ? 'Yes' : 'No'}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-400">Employee Count:</span>
-                                    <span className="text-white">{analysis.employee_count || 'Unknown'}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Contact & Intent */}
-                              <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50 md:col-span-2 lg:col-span-3">
-                                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                                  <Activity className="h-4 w-4 text-yellow-400" />
-                                  Communication Details
-                                </h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                  <div>
-                                    <span className="text-gray-400 block mb-1">Email Intent:</span>
-                                    <span className="text-white">{analysis.email_intent || analysis.intent_classification || 'Unknown'}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-400 block mb-1">Sender Domain:</span>
-                                    <span className="text-white">{analysis.sender_domain || 'Unknown'}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-400 block mb-1">Contact Quality:</span>
-                                    <span className="text-white">{analysis.contact_quality || 'Unknown'}</span>
-                                  </div>
-                                  <div>
-                                    <span className="text-gray-400 block mb-1">Overall Score:</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xl font-bold text-green-400">
-                                        {analysis.credibility_score || 0}/100
-                                      </span>
-                                      <Progress value={analysis.credibility_score || 0} className="h-2 flex-1" />
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {(analysis.summary || analysis.company_gist) && (
-                                  <div className="mt-4 p-3 rounded-lg bg-gray-600/50 border border-gray-500">
-                                    <span className="text-gray-400 block mb-1">AI Summary:</span>
-                                    <p className="text-white text-sm">{analysis.summary || analysis.company_gist}</p>
-                                  </div>
-                                )}
-
-                                {analysis.notes && (
-                                  <div className="mt-2 p-3 rounded-lg bg-gray-600/30 border border-gray-600">
-                                    <span className="text-gray-400 block mb-1">Notes:</span>
-                                    <p className="text-white text-sm">{analysis.notes}</p>
-                                  </div>
-                                )}
+                            <div className="flex-1">
+                              <h3 className="text-lg font-semibold text-white truncate">
+                                From: {email.sender || 'Unknown Sender'}
+                              </h3>
+                              <p className="text-sm text-gray-400 truncate">
+                                Subject: {email.subject || 'No Subject'}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="border-green-400 text-green-400 text-xs">
+                                  Score: {credibilityData?.credibility_score || 'N/A'}
+                                </Badge>
+                                <Badge variant="outline" className="border-blue-400 text-blue-400 text-xs">
+                                  {credibilityData?.email_intent || 'Unknown Intent'}
+                                </Badge>
                               </div>
                             </div>
                           </div>
-                        </details>
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
+                              <DropdownMenuItem 
+                                onClick={() => openDialog('subject', { email, credibilityData })}
+                                className="text-white hover:bg-gray-700 cursor-pointer"
+                              >
+                                <Mail className="mr-2 h-4 w-4" />
+                                Subject & Body
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => openDialog('credibility', { email, credibilityData })}
+                                className="text-white hover:bg-gray-700 cursor-pointer"
+                              >
+                                <Shield className="mr-2 h-4 w-4" />
+                                Company Credibility
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => openDialog('intent', { email, credibilityData })}
+                                className="text-white hover:bg-gray-700 cursor-pointer"
+                              >
+                                <Briefcase className="mr-2 h-4 w-4" />
+                                Intent
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => openDialog('summary', { email, credibilityData })}
+                                className="text-white hover:bg-gray-700 cursor-pointer"
+                              >
+                                <Bot className="mr-2 h-4 w-4" />
+                                AI Summary
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
-                    ));
-                  })()}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
+
+        {/* Dialog for different views */}
+        <Dialog open={!!selectedDialog} onOpenChange={closeDialog}>
+          <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle className="text-xl">
+                  {selectedDialog?.type === 'subject' && "Email Subject & Body"}
+                  {selectedDialog?.type === 'credibility' && "Company Credibility Analysis"}
+                  {selectedDialog?.type === 'intent' && "Email Intent Analysis"}
+                  {selectedDialog?.type === 'summary' && "AI Summary"}
+                </DialogTitle>
+                <Button variant="ghost" onClick={closeDialog} className="h-8 w-8 p-0">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </DialogHeader>
+            
+            {selectedDialog?.type === 'subject' && (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-lg font-semibold text-green-400 mb-2">Subject</h4>
+                  <p className="text-white bg-gray-800 p-3 rounded-lg">
+                    {selectedDialog.data.email.subject || 'No Subject'}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-green-400 mb-2">Email Body</h4>
+                  <div className="text-white bg-gray-800 p-3 rounded-lg max-h-96 overflow-y-auto">
+                    <pre className="whitespace-pre-wrap font-sans">
+                      {selectedDialog.data.email.body || selectedDialog.data.email.snippet || 'No content available'}
+                    </pre>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-lg font-semibold text-green-400 mb-2">Sender</h4>
+                  <p className="text-white bg-gray-800 p-3 rounded-lg">
+                    {selectedDialog.data.email.sender || 'Unknown Sender'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {selectedDialog?.type === 'credibility' && (
+              <div className="space-y-4">
+                {selectedDialog.data.credibilityData ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-3">Market Cap</h4>
+                      <p className="text-white">
+                        {selectedDialog.data.credibilityData.market_cap ? 
+                          (typeof selectedDialog.data.credibilityData.market_cap === 'number' ? 
+                            `$${(selectedDialog.data.credibilityData.market_cap / 1000000000).toFixed(1)}B` : 
+                            selectedDialog.data.credibilityData.market_cap) : 
+                          'N/A'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-3">Domain Age</h4>
+                      <p className="text-white">
+                        {selectedDialog.data.credibilityData.domain_age ? `${selectedDialog.data.credibilityData.domain_age} years` : 'Unknown'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-3">Funding Status</h4>
+                      <p className="text-white">{selectedDialog.data.credibilityData.funding_status || 'Unknown'}</p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-3">Employee Count</h4>
+                      <p className="text-white">{selectedDialog.data.credibilityData.employee_count || 'Unknown'}</p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-3">Business Verified</h4>
+                      <p className={`${selectedDialog.data.credibilityData.business_verified ? 'text-green-400' : 'text-red-400'}`}>
+                        {selectedDialog.data.credibilityData.business_verified ? 'Yes' : 'No'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-3">Overall Score</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl font-bold text-green-400">
+                          {selectedDialog.data.credibilityData.credibility_score || 0}/100
+                        </span>
+                        <Progress value={selectedDialog.data.credibilityData.credibility_score || 0} className="h-2 flex-1" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-gray-400">No credibility data available for this email.</p>
+                )}
+              </div>
+            )}
+
+            {selectedDialog?.type === 'intent' && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                  <h4 className="text-lg font-semibold text-white mb-3">Email Intent</h4>
+                  <p className="text-white text-xl">
+                    {selectedDialog.data.credibilityData?.email_intent || selectedDialog.data.credibilityData?.intent_classification || 'Unknown'}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                  <h4 className="text-lg font-semibold text-white mb-3">Intent Confidence</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-white">
+                      {selectedDialog.data.credibilityData?.intent_confidence ? 
+                        `${(selectedDialog.data.credibilityData.intent_confidence * 100).toFixed(1)}%` : 
+                        'N/A'}
+                    </span>
+                    {selectedDialog.data.credibilityData?.intent_confidence && (
+                      <Progress value={selectedDialog.data.credibilityData.intent_confidence * 100} className="h-2 flex-1" />
+                    )}
+                  </div>
+                </div>
+                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                  <h4 className="text-lg font-semibold text-white mb-3">Business Relevance</h4>
+                  <p className={`text-lg ${selectedDialog.data.credibilityData?.business_relevant ? 'text-green-400' : 'text-red-400'}`}>
+                    {selectedDialog.data.credibilityData?.business_relevant ? 'Relevant' : 'Not Relevant'}
+                  </p>
+                </div>
+                {selectedDialog.data.credibilityData?.notes && (
+                  <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                    <h4 className="text-lg font-semibold text-white mb-3">Notes</h4>
+                    <p className="text-white">{selectedDialog.data.credibilityData.notes}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedDialog?.type === 'summary' && (
+              <div className="space-y-4">
+                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                  <h4 className="text-lg font-semibold text-white mb-3">Company AI Summary</h4>
+                  <p className="text-white">
+                    {selectedDialog.data.credibilityData?.company_gist || 
+                     selectedDialog.data.credibilityData?.summary || 
+                     'No company summary available'}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                  <h4 className="text-lg font-semibold text-white mb-3">Email AI Summary</h4>
+                  <p className="text-white">
+                    {selectedDialog.data.email.snippet || 'No email summary available'}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                  <h4 className="text-lg font-semibold text-white mb-3">Company Overview</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-400">Company:</span>
+                      <span className="text-white ml-2">{selectedDialog.data.credibilityData?.company_name || 'Unknown'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Industry:</span>
+                      <span className="text-white ml-2">{selectedDialog.data.credibilityData?.industry || 'Unknown'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Size:</span>
+                      <span className="text-white ml-2">{selectedDialog.data.credibilityData?.company_size || 'Unknown'}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-400">Founded:</span>
+                      <span className="text-white ml-2">{selectedDialog.data.credibilityData?.founded || 'Unknown'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Quick Actions */}
@@ -667,8 +597,6 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
-
-
         </div>
 
         {/* Feature Preview */}
@@ -715,7 +643,7 @@ export default function Dashboard() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </div>
       </div>
       <Footer />
     </div>
