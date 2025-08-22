@@ -459,8 +459,6 @@ from fastapi.responses import FileResponse
 # Check if dist/public exists (Vite build output)
 client_dist_path = Path("../dist/public")
 if client_dist_path.exists() and client_dist_path.is_dir():
-    app.mount("/static", StaticFiles(directory="../dist/public"), name="static")
-    
     # Handle React Router routes - serve index.html for client-side routes
     @app.get("/")
     async def serve_spa():
@@ -498,13 +496,8 @@ if client_dist_path.exists() and client_dist_path.is_dir():
     async def serve_settings():
         return FileResponse("../dist/public/index.html")
     
-    # Fallback for any other client-side routes
-    @app.get("/{path:path}")
-    async def serve_spa_fallback(path: str):
-        # Check if it's a file request (has extension) or API request
-        if "." in path or path.startswith("api/"):
-            raise HTTPException(status_code=404, detail="Not found")
-        return FileResponse("../dist/public/index.html")
+    # Mount static files at root to serve assets correctly (this should be last)
+    app.mount("/", StaticFiles(directory="../dist/public", html=True), name="static")
 else:
     @app.get("/")
     async def root():
