@@ -119,23 +119,23 @@ export default function Dashboard() {
   const stats = [
     {
       title: "Total Mail",
-      value: "247",
+      value: unreadCount.toString(),
       change: "This Week",
       icon: Target,
       color: "text-orange-400"
     },
     {
       title: "Open Communication",
-      value: "23",
+      value: "0", // TODO: Implement logic to count emails without replies
       change: "Active Threads",
       icon: Activity,
       color: "text-cyan-400"
     },
     {
-      title: "Meeting Schedule",
-      value: "8",
-      change: "This Month",
-      icon: Calendar,
+      title: "Unread Mails",
+      value: unreadCount.toString(),
+      change: "Current",
+      icon: Mail,
       color: "text-pink-400"
     },
     {
@@ -281,16 +281,7 @@ export default function Dashboard() {
                   Start Parsing
                 </Button>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="p-4 rounded-lg border border-gray-700 bg-gray-800/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Unread Emails</span>
-                      <Activity className="h-4 w-4 text-green-400" />
-                    </div>
-                    <div className="text-lg font-bold text-white">{unreadCount}</div>
-                    <div className="text-xs text-green-400">Unread emails</div>
-                  </div>
-                </div>
+                
               </div>
             </CardContent>
           </Card>
@@ -336,6 +327,32 @@ export default function Dashboard() {
                                 </Badge>
                               </div>
                             </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 mr-4">
+                            <Button
+                              size="sm"
+                              className="bg-blue-500 hover:bg-blue-600 text-white"
+                              onClick={() => {
+                                const emailAddress = email.sender?.match(/<(.+)>/)?.[1] || email.sender;
+                                window.open(`mailto:${emailAddress}`, '_blank');
+                              }}
+                            >
+                              Reply
+                            </Button>
+                            <Button
+                              size="sm" 
+                              variant="outline"
+                              className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black"
+                              onClick={() => {
+                                toast({
+                                  title: "Coming Soon",
+                                  description: "Schedule Meeting feature will be available soon."
+                                });
+                              }}
+                            >
+                              Schedule Meeting
+                            </Button>
                           </div>
 
                           <div className="flex-shrink-0">
