@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -238,7 +237,7 @@ export default function Dashboard() {
                   className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md flex items-center gap-2"
                   onClick={async () => {
                     toast({ title: "Parsing Started", description: "Email analysis has begun." });
-                    
+
                     try {
                       const response = await fetch("/api/emails/start-parsing", {
                         method: "POST",
@@ -246,16 +245,16 @@ export default function Dashboard() {
                           "Content-Type": "application/json",
                         },
                       });
-                      
+
                       if (response.ok) {
                         const data = await response.json();
                         console.log("Parsing completed:", data);
-                        
+
                         // Update the state with processed data
                         setUnreadEmails(data.emails || []);
                         setUnreadCount(data.count || 0);
                         setCredibilityAnalysis(data.credibility_analysis || []);
-                        
+
                         toast({ 
                           title: "Parsing Complete", 
                           description: "Email analysis and credibility scoring completed!" 
@@ -338,7 +337,7 @@ export default function Dashboard() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
@@ -402,7 +401,7 @@ export default function Dashboard() {
                 </Button>
               </div>
             </DialogHeader>
-            
+
             {selectedDialog?.type === 'subject' && (
               <div className="space-y-4">
                 <div>
@@ -643,7 +642,7 @@ export default function Dashboard() {
               </div>
             </div>
           </CardContent>
-        </div>
+        </Card>
       </div>
       <Footer />
     </div>
