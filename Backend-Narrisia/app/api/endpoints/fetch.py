@@ -229,16 +229,30 @@ async def get_processed_emails(
             {
                 "id": "198d01d7b9b4a743",
                 "subject": "Complete your Application for the role of Sales Manager - Construction Chemical",
-                "sender": "noreply@2coms.com",
+                "sender": "2COMS Recruitment <noreply@2coms.com>",
                 "date": "2025-08-22T10:20:45+05:30",
                 "snippet": "Hi Guruprasath, Greetings from 2COMS! Thank you for submitting your application for the Sales Manager - Construction Chemical position. We noticed that you haven't yet completed the required pre-"
             },
             {
                 "id": "198cfd439b6cc0c7",
                 "subject": "How much energy does a single AI prompt use?",
-                "sender": "newsletter@techinsights.com",
+                "sender": "TechInsights Newsletter <newsletter@techinsights.com>",
                 "date": "2025-08-22T03:30:43Z",
                 "snippet": "Google calculates energy use of a single AI prompt, Meta pumps the brakes its AI hiring spree, Asian investors back AI memory, Stripe's founder shows the power of suggestion, and 4 trending tech"
+            },
+            {
+                "id": "198cdf4efbe7f9ae",
+                "subject": "Your receipt from Replit #2701-6321",
+                "sender": "Replit Support <no-reply@replit.com>",
+                "date": "2025-08-21T18:47:17Z",
+                "snippet": "Your receipt from Replit #2701-6321. Thank you for your payment. Here are the details of your transaction."
+            },
+            {
+                "id": "198cd25a3d5c0556",
+                "subject": "Reminder: Upcoming interview | Krish TechnoLabs",
+                "sender": "Krish TechnoLabs <hr@krishtechnolabs.com>",
+                "date": "2025-08-21T15:00:51Z",
+                "snippet": "Reminder: Upcoming interview | Krish TechnoLabs | Aug 21, 2025 | 09:00 PM to 10:00 PM. This is a gentle reminder for your upcoming interview."
             }
         ]
 
@@ -257,11 +271,71 @@ async def get_processed_emails(
                 "business_verified": True,
                 "employee_count": 500,
                 "credibility_score": 75.5,
-                "sender": "noreply@2coms.com",
+                "sender": "2COMS Recruitment <noreply@2coms.com>",
                 "sender_domain": "2coms.com",
                 "intent": "Job Application Follow-up",
                 "intent_confidence": 0.95,
                 "company_gist": "2COMS is a recruitment technology company specializing in construction and industrial hiring solutions."
+            },
+            {
+                "company_name": "TechInsights",
+                "industry": "Technology Media",
+                "company_size": "Small (1-50)",
+                "founded": 2015,
+                "market_cap": None,
+                "revenue": 5000000,
+                "funding_status": "Private",
+                "investors": [],
+                "domain_age": 8,
+                "ssl_certificate": True,
+                "business_verified": True,
+                "employee_count": 25,
+                "credibility_score": 65.2,
+                "sender": "TechInsights Newsletter <newsletter@techinsights.com>",
+                "sender_domain": "techinsights.com",
+                "intent": "Newsletter/Marketing",
+                "intent_confidence": 0.88,
+                "company_gist": "TechInsights provides technology news and analysis through newsletters and digital content."
+            },
+            {
+                "company_name": "Replit",
+                "industry": "Cloud Computing/Development Tools",
+                "company_size": "Medium (51-200)",
+                "founded": 2016,
+                "market_cap": 800000000,
+                "revenue": 100000000,
+                "funding_status": "Series B",
+                "investors": ["Andreessen Horowitz", "Coatue"],
+                "domain_age": 7,
+                "ssl_certificate": True,
+                "business_verified": True,
+                "employee_count": 150,
+                "credibility_score": 92.1,
+                "sender": "Replit Support <no-reply@replit.com>",
+                "sender_domain": "replit.com",
+                "intent": "Billing/Receipt",
+                "intent_confidence": 0.99,
+                "company_gist": "Replit is a cloud-based IDE and development platform for building, sharing, and deploying software."
+            },
+            {
+                "company_name": "Krish TechnoLabs",
+                "industry": "Software Development",
+                "company_size": "Medium (101-500)",
+                "founded": 2008,
+                "market_cap": None,
+                "revenue": 20000000,
+                "funding_status": "Private",
+                "investors": [],
+                "domain_age": 15,
+                "ssl_certificate": True,
+                "business_verified": True,
+                "employee_count": 200,
+                "credibility_score": 78.3,
+                "sender": "Krish TechnoLabs <hr@krishtechnolabs.com>",
+                "sender_domain": "krishtechnolabs.com",
+                "intent": "Interview Reminder",
+                "intent_confidence": 0.96,
+                "company_gist": "Krish TechnoLabs is a software development company providing web and mobile application development services."
             }
         ]
 

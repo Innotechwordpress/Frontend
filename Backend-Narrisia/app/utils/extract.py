@@ -6,13 +6,27 @@ def extract_domain_as_company_name(sender: str) -> str:
     Extract a company name from a single sender string.
     E.g., "John <john@pictory.ai>" -> "Pictory"
     E.g., "Google <no-reply@accounts.google.com>" -> "Google"
+    E.g., "2COMS Recruitment <noreply@2coms.com>" -> "2COMS Recruitment"
     """
     if not sender or sender.strip() == "" or sender == "Unknown Sender":
         print(f"⚠️ Empty or unknown sender provided: '{sender}'")
         return "Unknown"
     
-    match = re.search(r'<([^>]+)>', sender)
-    email_address = match.group(1) if match else sender.strip()
+    # First try to extract company name from the sender display name
+    if "<" in sender and ">" in sender:
+        display_name = sender.split("<")[0].strip()
+        email_address = sender.split("<")[1].split(">")[0].strip()
+        
+        # If display name exists and is not just the email, use it
+        if display_name and display_name != email_address and "@" not in display_name:
+            print(f"🎯 Extracted company from display name: '{display_name}'")
+            return display_name
+        
+        # Otherwise extract from email domain
+        match = re.search(r'<([^>]+)>', sender)
+        email_address = match.group(1) if match else sender.strip()
+    else:
+        email_address = sender.strip()
 
     domain_match = re.search(r'@([\w.-]+)', email_address)
     domain = domain_match.group(1).lower() if domain_match else ""
@@ -37,7 +51,9 @@ def extract_domain_as_company_name(sender: str) -> str:
             "twitter.com": "Twitter",
             "linkedin.com": "LinkedIn",
             "youtube.com": "Youtube",
-            "instagram.com": "Instagram"
+            "instagram.com": "Instagram",
+            "replit.com": "Replit",
+            "2coms.com": "2COMS"
         }
 
         # Check if it's a known company domain (handles subdomains)

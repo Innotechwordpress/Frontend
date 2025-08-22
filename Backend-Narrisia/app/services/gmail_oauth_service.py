@@ -152,11 +152,11 @@ class GmailOAuthService:
 
             def fetch_messages():
                 try:
-                    # Search for unread emails in primary inbox only (excludes promotions, social, updates tabs)
+                    # Search for unread emails in inbox (increased limit and better query)
                     results = service.users().messages().list(
                         userId='me',
-                        q='is:unread in:inbox category:primary',
-                        maxResults=10
+                        q='is:unread in:inbox',
+                        maxResults=50
                     ).execute()
 
                     messages = results.get('messages', [])
@@ -223,15 +223,32 @@ class GmailOAuthService:
 
         if sender_raw and sender_raw.strip():
             sender = sender_raw.strip()
-            # Clean up sender format if it contains name and email
+            logging.info(f"Raw sender extracted: '{sender}'")
+            
+            # Extract company name from sender
             if "<" in sender and ">" in sender:
-                sender = sender  # Keep full format for display
+                # Format: "Company Name <email@domain.com>"
+                name_part = sender.split("<")[0].strip()
+                email_part = sender.split("<")[1].split(">")[0].strip()
+                
+                # Use company name if available, otherwise extract from domain
+                if name_part and name_part != email_part:
+                    company_name = name_part
+                else:
+                    # Extract company from domain
+                    domain = email_part.split("@")[-1]
+                    company_name = domain.split(".")[0].capitalize()
+                sender = f"{company_name} <{email_part}>"
             elif "@" in sender:
-                sender = sender  # Just email address
-            else:
-                sender = sender if sender else "Unknown Sender"
+                # Just email address - extract company from domain
+                domain = sender.split("@")[-1]
+                company_name = domain.split(".")[0].capitalize()
+                sender = f"{company_name} <{sender}>"
+            
+            logging.info(f"Processed sender: '{sender}'")
         else:
             sender = "Unknown Sender"
+            logging.warning("No sender found in email headers")
 
         date_header = headers.get("Date", "")
 
