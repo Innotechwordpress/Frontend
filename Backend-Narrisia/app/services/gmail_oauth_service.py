@@ -52,10 +52,10 @@ class GmailOAuthService:
 
             def fetch_messages():
                 try:
-                    # Get list of unread messages
+                    # Search for unread emails in inbox only
                     results = service.users().messages().list(
                         userId='me', 
-                        q='is:unread',
+                        q='is:unread in:inbox',
                         maxResults=10
                     ).execute()
 
@@ -99,7 +99,7 @@ class GmailOAuthService:
             loop = asyncio.get_event_loop()
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 emails = await loop.run_in_executor(pool, fetch_messages)
-            
+
             return emails
 
         except ValueError as ve:
@@ -115,7 +115,7 @@ class GmailOAuthService:
         subject = headers.get("Subject", "No Subject")
         sender = headers.get("From", "No Sender")
         date_header = headers.get("Date", "")
-        
+
         # Try to parse the date header, default to None if parsing fails
         date_obj = None
         if date_header:
@@ -127,7 +127,7 @@ class GmailOAuthService:
                 logging.warning(f"Could not parse date header '{date_header}': {e}")
 
         snippet = msg.get("snippet", "")
-        
+
         # Extract plain text body
         body = self._extract_body(msg.get("payload", {}))
 
@@ -164,5 +164,5 @@ class GmailOAuthService:
                 body_data = payload.get("body", {}).get("data", "")
                 if body_data:
                     body = base64.urlsafe_b64decode(body_data + "===").decode("utf-8", errors="ignore")
-        
+
         return body
