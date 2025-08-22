@@ -47,6 +47,7 @@ def extract_domain_as_company_name(sender: str) -> str:
 
         # Known company domains mapping
         known_company_domains = {
+            "2coms.com": "2COMS",
             "linkedin.com": "LinkedIn",
             "github.com": "GitHub", 
             "google.com": "Google",
@@ -78,8 +79,7 @@ def extract_domain_as_company_name(sender: str) -> str:
             "lyft.com": "Lyft",
             "airbnb.com": "Airbnb",
             "krishtechnolabs.com": "Krish TechnoLabs",
-            "kekamail.com": "Keka (HR Platform)",
-            "2coms.com": "2COMS"
+            "kekamail.com": "Keka (HR Platform)"
         }
 
         # Check if it's a known company domain (handles subdomains)

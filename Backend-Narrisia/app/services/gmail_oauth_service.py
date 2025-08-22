@@ -305,46 +305,58 @@ class GmailOAuthService:
                 # Remove quotes if present
                 name_part = name_part.strip('"').strip("'")
 
-                # Use company name if available and meaningful
-                if name_part and name_part != email_part and len(name_part) > 1:
-                    # Clean up common email prefixes/suffixes
+                # First, extract company from domain for better accuracy
+                domain_company = None
+                if "@" in email_part:
+                    domain = email_part.split("@")[-1].lower()
+                    
+                    # Known company domains mapping
+                    domain_to_company = {
+                        "2coms.com": "2COMS",
+                        "indeed.com": "Indeed",
+                        "internshala.com": "Internshala", 
+                        "krishtechnolabs.com": "Krish Technolabs",
+                        "linkedin.com": "LinkedIn",
+                        "github.com": "GitHub",
+                        "google.com": "Google",
+                        "microsoft.com": "Microsoft"
+                    }
+                    
+                    # Check for exact domain match first
+                    for known_domain, company_name in domain_to_company.items():
+                        if domain == known_domain or domain.endswith(f".{known_domain}"):
+                            domain_company = company_name
+                            break
+                    
+                    # If not found in known domains, extract from domain
+                    if not domain_company:
+                        domain_parts = domain.split(".")
+                        if len(domain_parts) >= 2:
+                            main_domain = domain_parts[-2]
+                            if main_domain.lower() == "gmail":
+                                domain_company = "Personal Gmail"
+                            elif main_domain.lower() in ["outlook", "hotmail"]:
+                                domain_company = "Personal Outlook"
+                            else:
+                                domain_company = main_domain.upper() if len(main_domain) <= 4 else main_domain.capitalize()
+
+                # Use domain-based company name if available, otherwise use display name
+                if domain_company:
+                    company_name = domain_company
+                elif name_part and name_part != email_part and len(name_part) > 1:
+                    # Clean up common email prefixes/suffixes from display name
                     if " via " in name_part:
                         name_part = name_part.split(" via ")[0].strip()
                     if name_part.lower().endswith(" team"):
                         name_part = name_part[:-5].strip()
                     if name_part.lower().endswith(" hiring team"):
                         name_part = name_part[:-12].strip()
-
-                    # Specific fixes for known platforms/companies
-                    if "Indeed" in name_part:
-                        company_name = "Indeed"
-                    elif "Internshala" in name_part:
-                        company_name = "Internshala"
-                    elif "Krish Technolabs" in name_part:
-                        company_name = "Krish Technolabs"
-                    else:
-                        company_name = name_part
-
-                    sender = f"{company_name} <{email_part}>"
+                    
+                    company_name = name_part
                 else:
-                    # Extract company from domain
-                    if "@" in email_part:
-                        domain = email_part.split("@")[-1]
-                        company_name = domain.split(".")[0].capitalize()
-                        # Handle common cases
-                        if company_name.lower() == "gmail":
-                            company_name = "Personal Gmail"
-                        elif company_name.lower() == "outlook" or company_name.lower() == "hotmail":
-                            company_name = "Personal Outlook"
-                        elif company_name.lower() == "indeed":
-                            company_name = "Indeed"
-                        elif company_name.lower() == "internshala":
-                            company_name = "Internshala"
-                        elif company_name.lower() == "krish Technolabs":
-                            company_name = "Krish Technolabs"
-                        sender = f"{company_name} <{email_part}>"
-                    else:
-                        sender = f"Unknown <{email_part}>"
+                    company_name = "Unknown"
+
+                sender = f"{company_name} <{email_part}>"
             elif "@" in sender:
                 # Just email address - extract company from domain
                 email_part = sender.strip()
