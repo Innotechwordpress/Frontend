@@ -171,114 +171,146 @@ class GmailOAuthService:
 
 
     async def fetch_unread_emails(self) -> List[Dict]:
-        """Fetch unread emails using Gmail OAuth API"""
+        """Fetch unread emails from Gmail"""
         try:
-            service = await self._get_service()
+            # Get list of unread messages
+            query = "is:unread"
 
-            def fetch_messages():
+            # Use a reasonable batch size to avoid overwhelming the API
+            batch_size = 10
+
+            response = await self._make_request(
+                "GET",
+                "https://www.googleapis.com/gmail/v1/users/me/messages",
+                params={
+                    "q": query,
+                    "maxResults": batch_size
+                }
+            )
+
+            messages = response.get("messages", [])
+            logging.info(f"📧 Found {len(messages)} unread messages to process")
+
+            if not messages:
+                logging.info("📧 No unread messages found")
+                return []
+
+            emails = []
+            for message in messages:
                 try:
-                    # First, try to get any recent emails to debug the issue
-                    debug_results = service.users().messages().list(
-                        userId='me',
-                        q='in:inbox',
-                        maxResults=10
-                    ).execute()
-                    debug_messages = debug_results.get('messages', [])
-                    logging.info(f"Debug: Found {len(debug_messages)} total inbox messages")
+                    # Fetch full message details
+                    msg_response = await self._make_request(
+                        "GET",
+                        f"https://www.googleapis.com/gmail/v1/users/me/messages/{message['id']}"
+                    )
 
-                    # Search for unread emails in primary inbox only
-                    results = service.users().messages().list(
-                        userId='me',
-                        q='is:unread in:inbox',
-                        maxResults=50
-                    ).execute()
+                    if msg_response:
+                        msg = msg_response
 
-                    messages = results.get('messages', [])
-                    logging.info(f"Found {len(messages)} unread messages with query 'is:unread in:inbox'")
+                        # Check if message is actually unread
+                        labels = msg.get('labelIds', [])
+                        is_unread = 'UNREAD' in labels
+                        is_inbox = 'INBOX' in labels
 
-                    # If no unread found, try a broader search
-                    if not messages:
-                        logging.info("No unread messages found with primary query, trying broader search...")
+                        logging.info(f"Message {message['id']}: labels={labels}, unread={is_unread}, inbox={is_inbox}")
 
-                        # Try searching for recent emails (last 3 days)
-                        import datetime
-                        three_days_ago = (datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y/%m/%d')
+                        # Parse email data
+                        email_data = self._parse_email_message(msg)
+                        email_data['is_unread'] = is_unread
+                        email_data['labels'] = labels
 
-                        results = service.users().messages().list(
-                            userId='me',
-                            q=f'in:inbox after:{three_days_ago}',
-                            maxResults=20
-                        ).execute()
+                        # For debugging, include all recent emails but mark their status
+                        emails.append(email_data)
 
-                        messages = results.get('messages', [])
-                        logging.info(f"Found {len(messages)} recent messages in last 3 days")
+                    except Exception as msg_error:
+                        logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
+                        continue
 
-                        if not messages:
-                            logging.info("No recent messages found either")
-                            return []
-
-                    emails = []
-                    for message in messages:
-                        try:
-                            msg = service.users().messages().get(
-                                userId='me',
-                                id=message['id'],
-                                format='full'
-                            ).execute()
-
-                            # Check if message is actually unread
-                            labels = msg.get('labelIds', [])
-                            is_unread = 'UNREAD' in labels
-                            is_inbox = 'INBOX' in labels
-
-                            logging.info(f"Message {message['id']}: labels={labels}, unread={is_unread}, inbox={is_inbox}")
-
-                            # Parse email data
-                            email_data = self._parse_email_message(msg)
-                            email_data['is_unread'] = is_unread
-                            email_data['labels'] = labels
-
-                            # For debugging, include all recent emails but mark their status
-                            emails.append(email_data)
-
-                        except Exception as msg_error:
-                            logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
-                            continue
-
-                    # Log summary of what we found
-                    unread_count = sum(1 for email in emails if email.get('is_unread', False))
-                    logging.info(f"Summary: {len(emails)} total emails, {unread_count} actually unread")
-
-                    return emails
-                except HttpError as error:
-                    logging.error(f"Gmail API error: {error}")
-                    if error.resp.status == 401:
-                        # Attempt to refresh token if it's expired or invalid
-                        if not asyncio.get_event_loop().run_until_complete(self._refresh_and_initialize_service()):
-                            raise Exception("OAuth token expired or invalid. Please reconnect your Google account.")
-                        # If refresh was successful, retry the fetch_messages operation
-                        return fetch_messages() # Recursive call to retry
-                    elif error.resp.status == 403:
-                        raise Exception("Insufficient permissions. Please re-authorize the application.")
-                    else:
-                        raise Exception(f"Gmail API error: {error.resp.status} - {error}")
-                except Exception as e:
-                    logging.error(f"Unexpected error fetching emails: {e}")
-                    raise
-
-            # Use a ThreadPoolExecutor to run the synchronous Gmail API calls in a separate thread
-            loop = asyncio.get_event_loop()
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                emails = await loop.run_in_executor(pool, fetch_messages)
+                # Log summary of what we found
+                unread_count = sum(1 for email in emails if email.get('is_unread', False))
+                logging.info(f"Summary: {len(emails)} total emails, {unread_count} actually unread")
 
             return emails
 
-        except ValueError as ve:
-            logging.error(f"Authentication error: {ve}")
-            raise Exception(f"Authentication error: {ve}")
         except Exception as e:
-            logging.error(f"Error processing emails: {e}")
-            raise
+            logging.error(f"Error fetching unread emails: {e}")
+            return []
+
+    async def fetch_emails_this_week(self) -> int:
+        """Fetch count of emails received this week"""
+        try:
+            from datetime import datetime, timedelta
+
+            # Calculate start of this week (Monday)
+            today = datetime.now()
+            start_of_week = today - timedelta(days=today.weekday())
+            start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # Format date for Gmail query
+            query_date = start_of_week.strftime("%Y/%m/%d")
+            query = f"in:inbox after:{query_date}"
+
+            logging.info(f"📊 Fetching emails from this week starting {query_date}")
+
+            response = await self._make_request(
+                "GET",
+                "https://www.googleapis.com/gmail/v1/users/me/messages",
+                params={
+                    "q": query,
+                    "maxResults": 500  # Higher limit to get accurate count
+                }
+            )
+
+            messages = response.get("messages", [])
+            total_count = len(messages)
+
+            logging.info(f"📊 Found {total_count} emails received this week")
+            return total_count
+
+        except Exception as e:
+            logging.error(f"Error fetching weekly email count: {e}")
+            return 0
+
+    async def _make_request(self, method: str, url: str, params: Dict = None, data: Dict = None, headers: Dict = None):
+        """
+        Helper method to make authenticated HTTP requests asynchronously.
+        Manages token refresh if an authentication error occurs.
+        """
+        if not self.access_token:
+            # If no access token is available, try to get it or refresh
+            await self._get_service() # This will try to initialize or refresh if needed
+            if not self.access_token:
+                raise Exception("Cannot make request: no valid access token available.")
+
+        if not headers:
+            headers = {}
+        headers["Authorization"] = f"Bearer {self.access_token}"
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                logging.info(f"Making {method} request to {url} with params: {params}")
+                async with session.request(method, url, headers=headers, params=params, json=data) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    elif response.status == 401:
+                        logging.warning("401 Unauthorized. Attempting to refresh token.")
+                        if await self._refresh_and_initialize_service():
+                            # Retry the request after successful refresh
+                            return await self._make_request(method, url, params, data, headers)
+                        else:
+                            raise Exception("OAuth token expired or invalid. Please re-authorize the application.")
+                    elif response.status == 403:
+                         raise Exception("Insufficient permissions. Please re-authorize the application.")
+                    else:
+                        error_text = await response.text()
+                        logging.error(f"HTTP Error: {response.status} - {error_text}")
+                        raise Exception(f"HTTP request failed: {response.status} - {error_text}")
+            except aiohttp.ClientError as e:
+                logging.error(f"Network or connection error: {e}")
+                raise Exception(f"Network or connection error: {e}")
+            except Exception as e:
+                logging.error(f"An unexpected error occurred during request: {e}")
+                raise
 
     def _parse_email_message(self, msg: Dict) -> Dict:
         """Parse a single email message from Gmail API response"""
@@ -309,25 +341,25 @@ class GmailOAuthService:
                 domain_company = None
                 if "@" in email_part:
                     domain = email_part.split("@")[-1].lower()
-                    
+
                     # Known company domains mapping
                     domain_to_company = {
                         "2coms.com": "2COMS",
                         "indeed.com": "Indeed",
-                        "internshala.com": "Internshala", 
+                        "internshala.com": "Internshala",
                         "krishtechnolabs.com": "Krish Technolabs",
                         "linkedin.com": "LinkedIn",
                         "github.com": "GitHub",
                         "google.com": "Google",
                         "microsoft.com": "Microsoft"
                     }
-                    
+
                     # Check for exact domain match first
                     for known_domain, company_name in domain_to_company.items():
                         if domain == known_domain or domain.endswith(f".{known_domain}"):
                             domain_company = company_name
                             break
-                    
+
                     # If not found in known domains, extract from domain
                     if not domain_company:
                         domain_parts = domain.split(".")
@@ -351,7 +383,7 @@ class GmailOAuthService:
                         name_part = name_part[:-5].strip()
                     if name_part.lower().endswith(" hiring team"):
                         name_part = name_part[:-12].strip()
-                    
+
                     company_name = name_part
                 else:
                     company_name = "Unknown"

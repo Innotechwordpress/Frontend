@@ -655,6 +655,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Weekly email count endpoint
+  app.get("/api/emails/weekly-count", async (req: any, res) => {
+    if (!req.session || !req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const user = users.get(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      console.log("Fetching weekly email count for user:", user.email);
+      const accessToken = req.session.accessToken;
+
+      if (!accessToken) {
+        console.log("No OAuth token found in session for weekly count request");
+        return res.json({
+          weekly_count: 0,
+          message: "OAuth token required. Please reconnect your Google account."
+        });
+      }
+
+      try {
+        const fastApiResponse = await fetch(
+          "http://localhost:5000/fetch/weekly-count",
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "oauth-token": accessToken,
+            },
+          },
+        );
+
+        if (fastApiResponse.ok) {
+          const countData = await fastApiResponse.json();
+          console.log("Successfully fetched weekly count from FastAPI:", countData);
+
+          return res.json({
+            weekly_count: countData.weekly_count || 0,
+            message: countData.message || "Weekly count retrieved"
+          });
+        } else {
+          console.log("FastAPI returned error for weekly count:", fastApiResponse.status);
+          return res.json({
+            weekly_count: 0,
+            message: "Failed to fetch weekly count"
+          });
+        }
+      } catch (fetchError) {
+        console.error("Error fetching weekly count from FastAPI:", fetchError);
+        return res.json({
+          weekly_count: 0,
+          message: "Network error while fetching weekly count"
+        });
+      }
+    } catch (error) {
+      console.error("Weekly count fetch error:", error);
+      res.status(500).json({ message: "Error fetching weekly email count" });
+    }
+  });
+
   // Start parsing endpoint for the "Start Parsing" button
   app.post("/api/emails/start-parsing", async (req: any, res) => {
     if (!req.session || !req.session.userId) {

@@ -17,6 +17,7 @@ export default function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [unreadEmails, setUnreadEmails] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [weeklyEmailCount, setWeeklyEmailCount] = useState(0);
   const [credibilityAnalysis, setCredibilityAnalysis] = useState([]);
   const [selectedDialog, setSelectedDialog] = useState<{
     type: 'subject' | 'credibility' | 'intent_summary';
@@ -35,6 +36,7 @@ export default function Dashboard() {
   // Fetch unread emails when the component mounts or user changes
   useEffect(() => {
     if (user) {
+      // Fetch unread emails
       fetch("/api/emails/unread")
         .then((res) => res.json())
         .then((data) => {
@@ -53,6 +55,18 @@ export default function Dashboard() {
           // Set empty state on error
           setUnreadEmails([]);
           setUnreadCount(0);
+        });
+
+      // Fetch weekly email count
+      fetch("/api/emails/weekly-count")
+        .then((res) => res.json())
+        .then((data) => {
+          console.log("Weekly email count received:", data);
+          setWeeklyEmailCount(data.weekly_count || 0);
+        })
+        .catch((error) => {
+          console.error("Error fetching weekly email count:", error);
+          setWeeklyEmailCount(0);
         });
     }
   }, [user, toast]);
@@ -119,7 +133,7 @@ export default function Dashboard() {
   const stats = [
     {
       title: "Total Mail",
-      value: unreadCount.toString(),
+      value: weeklyEmailCount.toString(),
       change: "This Week",
       icon: Target,
       color: "text-orange-400"
@@ -329,10 +343,10 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 mr-4">
+                          <div className="flex items-center gap-1 mr-2 min-w-0 flex-shrink-0">
                             <Button
                               size="sm"
-                              className="bg-blue-500 hover:bg-blue-600 text-white"
+                              className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 h-7 min-w-[50px] whitespace-nowrap"
                               onClick={() => {
                                 const emailAddress = email.sender?.match(/<(.+)>/)?.[1] || email.sender;
                                 window.open(`mailto:${emailAddress}`, '_blank');
@@ -343,7 +357,7 @@ export default function Dashboard() {
                             <Button
                               size="sm" 
                               variant="outline"
-                              className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black"
+                              className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black text-xs px-2 py-1 h-7 min-w-[80px] whitespace-nowrap"
                               onClick={() => {
                                 toast({
                                   title: "Coming Soon",
@@ -351,7 +365,7 @@ export default function Dashboard() {
                                 });
                               }}
                             >
-                              Schedule Meeting
+                              Meet
                             </Button>
                           </div>
 

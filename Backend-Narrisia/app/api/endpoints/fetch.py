@@ -248,6 +248,26 @@ async def fetch_unread_emails(
         logging.error(f"Error fetching emails: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch emails: {str(e)}")
 
+@router.get("/weekly-count")
+async def get_weekly_email_count(
+    oauth_token: str = Header(..., alias="oauth-token")
+):
+    """Get count of emails received this week"""
+    if not oauth_token:
+        raise HTTPException(status_code=401, detail="OAuth token required")
+    
+    try:
+        gmail_service = GmailOAuthService(access_token=oauth_token)
+        weekly_count = await gmail_service.fetch_emails_this_week()
+        
+        return {
+            "weekly_count": weekly_count,
+            "message": f"Found {weekly_count} emails this week"
+        }
+    except Exception as e:
+        logging.error(f"Error fetching weekly email count: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch weekly count: {str(e)}")
+
 @router.get("/fetch/processed", response_model=Dict)
 async def get_processed_emails(
     request: Request # Inject the request object to access headers
