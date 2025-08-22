@@ -219,16 +219,17 @@ class GmailOAuthService:
                         email_data['is_unread'] = is_unread
                         email_data['labels'] = labels
 
-                        # For debugging, include all recent emails but mark their status
-                        emails.append(email_data)
+                        # Only include actually unread emails
+                        if is_unread:
+                            emails.append(email_data)
 
                 except Exception as msg_error:
                     logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
                     continue
 
             # Log summary of what we found
-            unread_count = sum(1 for email in emails if email.get('is_unread', False))
-            logging.info(f"Summary: {len(emails)} total emails, {unread_count} actually unread")
+            unread_count = len(emails)
+            logging.info(f"Summary: {unread_count} unread emails returned")
 
             return emails
 
