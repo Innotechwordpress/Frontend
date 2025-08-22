@@ -4,75 +4,82 @@ import logging
 # ✅ Single sender extraction
 def extract_domain_as_company_name(sender: str) -> str:
     """
-    Extract company name from sender email with improved logic.
+    Extract company name from email sender.
+    Examples:
+    - "jobs-noreply@linkedin.com" -> "LinkedIn"
+    - "notifications@github.com" -> "GitHub"
+    - "John Doe <john@example.com>" -> "Example"
+    - "Indeed <noreply@indeed.com>" -> "Indeed"
     """
     print(f"🎯 Extracting company from sender: '{sender}'")
 
     if not sender or sender.strip() == "":
-        print("⚠️ Empty or None sender")
+        print(f"⚠️ Empty sender provided")
         return "Unknown"
 
-    sender = sender.strip()
-
-    # Handle display names like "Company Name <email@domain.com>"
-    if '<' in sender and '>' in sender:
-        # Extract display name
-        display_name_match = re.search(r'^([^<]+)', sender)
-        if display_name_match:
-            display_name = display_name_match.group(1).strip().strip('"').strip("'")
-
-            # Clean up common suffixes from display names
-            display_name = re.sub(r'\s+(team|hiring|recruitment|hr|support|noreply|no-reply)(\s|$)', r'\2', display_name, flags=re.IGNORECASE)
-            display_name = display_name.strip()
+    # Clean the sender string and extract email
+    email_match = re.search(r'<([^>]+)>', sender)
+    if email_match:
+        email = email_match.group(1)
+        # Also extract display name for better company identification
+        display_name = sender.split('<')[0].strip().strip('"').strip("'")
+        if display_name:
+            # Clean up display name
+            if " via " in display_name:
+                display_name = display_name.split(" via ")[0].strip()
+            if display_name.lower().endswith(" team"):
+                display_name = display_name[:-5].strip()
+            if display_name.lower().endswith(" hiring team"):
+                display_name = display_name[:-12].strip()
+            if display_name.lower().endswith(" hiring"):
+                display_name = display_name[:-7].strip()
 
             print(f"🎯 Extracted company from display name: '{display_name}'")
-
-            # Special handling for known patterns
-            if "from internshala" in display_name.lower() or "internshala" in display_name.lower():
-                return "Internshala"
-            elif "indeed" in display_name.lower():
-                return "Indeed"
-            elif "krish technolabs" in display_name.lower():
-                return "Krish TechnoLabs"
-            elif "2coms" in display_name.lower():
-                return "2COMS"
-
-            if display_name and display_name.lower() not in ["noreply", "no-reply", "support", "team", "hiring"]:
-                return display_name
-
-        # Otherwise extract from email domain
-        match = re.search(r'<([^>]+)>', sender)
-        email_address = match.group(1) if match else sender.strip()
+            return display_name
     else:
-        email_address = sender.strip()
+        # Assume the entire sender is an email
+        email = sender.strip()
 
-    domain_match = re.search(r'@([\w.-]+)', email_address)
-    domain = domain_match.group(1).lower() if domain_match else ""
+    # Extract domain from email
+    if "@" in email:
+        domain = email.split("@")[1].lower()
+        print(f"🎯 Extracted domain: '{domain}'")
 
-    if domain:
-        generic_domains = {"gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "protonmail.com"}
-        if domain in generic_domains:
-            print(f"⚠️ Skipped generic domain: {domain}")
-            return "Generic"
-
-        # Common patterns for company domains
+        # Known company domains mapping
         known_company_domains = {
+            "linkedin.com": "LinkedIn",
+            "github.com": "GitHub", 
             "google.com": "Google",
             "microsoft.com": "Microsoft",
             "apple.com": "Apple",
             "amazon.com": "Amazon",
-            "facebook.com": "Facebook",
             "meta.com": "Meta",
+            "facebook.com": "Meta",
             "twitter.com": "Twitter",
-            "linkedin.com": "LinkedIn",
-            "youtube.com": "Youtube",
-            "instagram.com": "Instagram",
-            "replit.com": "Replit",
-            "2coms.com": "2COMS",
             "indeed.com": "Indeed",
+            "glassdoor.com": "Glassdoor",
+            "monster.com": "Monster",
+            "naukri.com": "Naukri",
             "internshala.com": "Internshala",
+            "wellfound.com": "Wellfound",
+            "angellist.com": "Wellfound",
+            "stripe.com": "Stripe",
+            "paypal.com": "PayPal",
+            "shopify.com": "Shopify",
+            "salesforce.com": "Salesforce",
+            "hubspot.com": "HubSpot",
+            "slack.com": "Slack",
+            "zoom.us": "Zoom",
+            "dropbox.com": "Dropbox",
+            "atlassian.com": "Atlassian",
+            "netflix.com": "Netflix",
+            "spotify.com": "Spotify",
+            "uber.com": "Uber",
+            "lyft.com": "Lyft",
+            "airbnb.com": "Airbnb",
             "krishtechnolabs.com": "Krish TechnoLabs",
-            "kekamail.com": "Krish TechnoLabs"  # Common email service used by Krish
+            "kekamail.com": "Keka (HR Platform)",
+            "2coms.com": "2COMS"
         }
 
         # Check if it's a known company domain (handles subdomains)

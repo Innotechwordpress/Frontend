@@ -491,9 +491,9 @@ export default function Dashboard() {
                 </div>
 
                 <div>
-                  <h4 className="text-lg font-semibold text-green-400 mb-2">Email Summary</h4>
+                  <h4 className="text-lg font-semibold text-green-400 mb-2">AI Email Summary</h4>
                   <p className="text-white bg-gray-800 p-3 rounded-lg">
-                    {selectedDialog.data.email?.snippet || 'No email summary available'}
+                    {selectedDialog.data.analysis?.email_summary || selectedDialog.data.email?.snippet || 'No email summary available'}
                   </p>
                 </div>
               </div>

@@ -54,8 +54,38 @@ async def trigger_auto_processing(raw_emails, oauth_token):
                 # Research company and get credibility score
                 report = await engine.research_company(company_name)
 
-                # Extract email content for classification
+                # Extract email content for classification and summarization
                 email_body = email.get("body") or email.get("snippet", "")
+
+                # Generate AI summary of email content
+                email_summary = ""
+                if email_body:
+                    try:
+                        from openai import AsyncOpenAI
+                        import httpx
+                        
+                        client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, http_client=httpx.AsyncClient(timeout=30.0))
+                        summary_prompt = f"""
+                        Please provide a concise, professional summary of this email content in 2-3 sentences. 
+                        Focus on the main purpose, key information, and any action items.
+                        
+                        Email content:
+                        {email_body[:1000]}  # Limit content to avoid token limits
+                        """
+                        
+                        summary_response = await client.chat.completions.create(
+                            model=settings.MODEL,
+                            messages=[{"role": "user", "content": summary_prompt}],
+                            temperature=0.3,
+                            max_tokens=150
+                        )
+                        
+                        email_summary = summary_response.choices[0].message.content.strip()
+                        logging.info(f"📝 Generated email summary for {company_name}: {email_summary[:100]}...")
+                        
+                    except Exception as summary_error:
+                        logging.warning(f"⚠️ Failed to generate email summary for {company_name}: {summary_error}")
+                        email_summary = email.get("snippet", "")[:200] + "..." if len(email.get("snippet", "")) > 200 else email.get("snippet", "")
 
                 # Classify email intent
                 try:
@@ -170,6 +200,7 @@ async def trigger_auto_processing(raw_emails, oauth_token):
 
                     # Additional Info
                     "company_gist": comprehensive_details.get("description", report.company_profile.description if report.company_profile else "No description available"),
+                    "email_summary": email_summary,  # AI-generated email summary
                     "score_breakdown": score_breakdown,
                     "company_age_years": raw_metrics.get("age_years", 2024 - comprehensive_details.get("founded", 2020)),
                     "notes": classification_model.notes or "No additional notes"
