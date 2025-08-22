@@ -19,7 +19,7 @@ export default function Dashboard() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [credibilityAnalysis, setCredibilityAnalysis] = useState([]);
   const [selectedDialog, setSelectedDialog] = useState<{
-    type: 'subject' | 'credibility' | 'intent' | 'summary';
+    type: 'subject' | 'credibility' | 'intent';
     data: any;
   } | null>(null);
 
@@ -155,7 +155,7 @@ export default function Dashboard() {
     );
   };
 
-  const openDialog = (type: 'subject' | 'credibility' | 'intent' | 'summary', data: any) => {
+  const openDialog = (type: 'subject' | 'credibility' | 'intent', data: any) => {
     setSelectedDialog({ type, data });
   };
 
@@ -365,15 +365,8 @@ export default function Dashboard() {
                                   onClick={() => openDialog('intent', { email, credibilityData })}
                                   className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
                                 >
-                                  <Briefcase className="mr-2 h-4 w-4" />
-                                  Intent
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => openDialog('summary', { email, credibilityData })}
-                                  className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
-                                >
                                   <Bot className="mr-2 h-4 w-4" />
-                                  AI Summary
+                                  Intent & AI Summary
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -396,7 +389,7 @@ export default function Dashboard() {
                 <DialogTitle className="text-xl">
                   {selectedDialog?.type === 'subject' && "Email Subject & Body"}
                   {selectedDialog?.type === 'credibility' && "Company Credibility Analysis"}
-                  {selectedDialog?.type === 'intent' && "Email Intent Analysis"}
+                  {selectedDialog?.type === 'intent' && "Intent & AI Summary"}
                   {selectedDialog?.type === 'summary' && "AI Summary"}
                 </DialogTitle>
                 <Button variant="ghost" onClick={closeDialog} className="h-8 w-8 p-0">
@@ -482,37 +475,85 @@ export default function Dashboard() {
 
             {selectedDialog?.type === 'intent' && (
               <div className="space-y-4">
-                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                  <h4 className="text-lg font-semibold text-white mb-3">Email Intent</h4>
-                  <p className="text-white text-xl">
-                    {selectedDialog.data.credibilityData?.email_intent || selectedDialog.data.credibilityData?.intent_classification || 'Unknown'}
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                  <h4 className="text-lg font-semibold text-white mb-3">Intent Confidence</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-white">
-                      {selectedDialog.data.credibilityData?.intent_confidence ? 
-                        `${(selectedDialog.data.credibilityData.intent_confidence * 100).toFixed(1)}%` : 
-                        'N/A'}
-                    </span>
-                    {selectedDialog.data.credibilityData?.intent_confidence && (
-                      <Progress value={selectedDialog.data.credibilityData.intent_confidence * 100} className="h-2 flex-1" />
+                {/* Intent Analysis Section */}
+                <div className="border-b border-gray-600 pb-4">
+                  <h3 className="text-lg font-bold text-green-400 mb-3">📧 Email Intent Analysis</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-2">Email Intent</h4>
+                      <p className="text-white text-lg">
+                        {selectedDialog.data.credibilityData?.email_intent || selectedDialog.data.credibilityData?.intent_classification || 'Unknown'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-2">Intent Confidence</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white">
+                          {selectedDialog.data.credibilityData?.intent_confidence ? 
+                            `${(selectedDialog.data.credibilityData.intent_confidence * 100).toFixed(1)}%` : 
+                            'N/A'}
+                        </span>
+                        {selectedDialog.data.credibilityData?.intent_confidence && (
+                          <Progress value={selectedDialog.data.credibilityData.intent_confidence * 100} className="h-2 flex-1" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-2">Business Relevance</h4>
+                      <p className={`text-lg ${selectedDialog.data.credibilityData?.business_relevant ? 'text-green-400' : 'text-red-400'}`}>
+                        {selectedDialog.data.credibilityData?.business_relevant ? 'Relevant' : 'Not Relevant'}
+                      </p>
+                    </div>
+                    {selectedDialog.data.credibilityData?.notes && (
+                      <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                        <h4 className="text-sm font-semibold text-white mb-2">Analysis Notes</h4>
+                        <p className="text-white text-sm">{selectedDialog.data.credibilityData.notes}</p>
+                      </div>
                     )}
                   </div>
                 </div>
-                <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                  <h4 className="text-lg font-semibold text-white mb-3">Business Relevance</h4>
-                  <p className={`text-lg ${selectedDialog.data.credibilityData?.business_relevant ? 'text-green-400' : 'text-red-400'}`}>
-                    {selectedDialog.data.credibilityData?.business_relevant ? 'Relevant' : 'Not Relevant'}
-                  </p>
-                </div>
-                {selectedDialog.data.credibilityData?.notes && (
-                  <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
-                    <h4 className="text-lg font-semibold text-white mb-3">Notes</h4>
-                    <p className="text-white">{selectedDialog.data.credibilityData.notes}</p>
+
+                {/* AI Summary Section */}
+                <div>
+                  <h3 className="text-lg font-bold text-blue-400 mb-3">🤖 AI Summary</h3>
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-2">Company AI Summary</h4>
+                      <p className="text-white">
+                        {selectedDialog.data.credibilityData?.company_gist || 
+                         selectedDialog.data.credibilityData?.summary || 
+                         'No company summary available'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-2">Email AI Summary</h4>
+                      <p className="text-white">
+                        {selectedDialog.data.email.snippet || 'No email summary available'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg border border-gray-600 bg-gray-700/50">
+                      <h4 className="text-sm font-semibold text-white mb-2">Company Overview</h4>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          <span className="text-gray-400">Company:</span>
+                          <span className="text-white ml-2">{selectedDialog.data.credibilityData?.company_name || 'Unknown'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Industry:</span>
+                          <span className="text-white ml-2">{selectedDialog.data.credibilityData?.industry || 'Unknown'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Size:</span>
+                          <span className="text-white ml-2">{selectedDialog.data.credibilityData?.company_size || 'Unknown'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Founded:</span>
+                          <span className="text-white ml-2">{selectedDialog.data.credibilityData?.founded || 'Unknown'}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
+                </div>
               </div>
             )}
 

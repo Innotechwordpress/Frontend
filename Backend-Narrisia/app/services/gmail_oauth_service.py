@@ -54,7 +54,7 @@ class GmailOAuthService:
                 try:
                     # Search for unread emails in primary inbox only (excludes promotions, social, updates tabs)
                     results = service.users().messages().list(
-                        userId='me', 
+                        userId='me',
                         q='is:unread in:inbox category:primary',
                         maxResults=10
                     ).execute()
@@ -70,7 +70,7 @@ class GmailOAuthService:
                     for message in messages:
                         try:
                             msg = service.users().messages().get(
-                                userId='me', 
+                                userId='me',
                                 id=message['id'],
                                 format='full'
                             ).execute()
@@ -113,7 +113,24 @@ class GmailOAuthService:
         """Parse a single email message from Gmail API response"""
         headers = {h["name"]: h["value"] for h in msg.get("payload", {}).get("headers", [])}
         subject = headers.get("Subject", "No Subject")
-        sender = headers.get("From", "No Sender")
+        # Extract sender with better handling
+        sender_raw = msg.get("From")
+        if not sender_raw:
+            # Try alternative headers
+            sender_raw = msg.get("from") or msg.get("FROM") or msg.get("Sender")
+
+        if sender_raw and sender_raw.strip():
+            sender = sender_raw.strip()
+            # Clean up sender format if it contains name and email
+            if "<" in sender and ">" in sender:
+                sender = sender  # Keep full format for display
+            elif "@" in sender:
+                sender = sender  # Just email address
+            else:
+                sender = sender or "Unknown Sender"
+        else:
+            sender = "Unknown Sender"
+
         date_header = headers.get("Date", "")
 
         # Try to parse the date header, default to None if parsing fails
