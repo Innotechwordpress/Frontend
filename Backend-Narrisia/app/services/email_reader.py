@@ -27,7 +27,20 @@ class EmailReader:
             if isinstance(subject, bytes):
                 subject = subject.decode(encoding or "utf-8", errors="ignore")
 
-            from_ = msg.get("From")
+            # Extract sender with better handling
+            sender_raw = msg.get("From", "Unknown")
+            sender = sender_raw
+
+            # Try to clean up sender format if it contains name and email
+            if "<" in sender_raw and ">" in sender_raw:
+                # Format: "Name <email@domain.com>" - keep as is for better display
+                sender = sender_raw
+            elif "@" in sender_raw:
+                # Just email address
+                sender = sender_raw
+            else:
+                # Fallback
+                sender = sender_raw or "Unknown Sender"
 
             # Decode date
             date_str = msg.get("Date")
@@ -43,7 +56,7 @@ class EmailReader:
                     content_type = part.get_content_type()
                     content_disposition = str(part.get("Content-Disposition"))
 
-                    if content_type == "text/plain" and "attachment" not in content_disposition:
+                    if content_type == "text/plain" and "attachment" not not in content_disposition:
                         try:
                             body = part.get_payload(decode=True).decode(
                                 part.get_content_charset() or "utf-8", errors="ignore"
@@ -63,7 +76,7 @@ class EmailReader:
             emails.append({
                 "id": num.decode(),
                 "subject": subject,
-                "sender": from_,
+                "sender": sender,
                 "date": date,
                 "snippet": snippet,
                 "body": body

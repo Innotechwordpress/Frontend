@@ -322,59 +322,62 @@ export default function Dashboard() {
                             </div>
                             <div className="flex-1">
                               <h3 className="text-lg font-semibold text-white truncate">
-                                From: {email.sender || 'Unknown Sender'}
+                                From: {email.sender || email.from || 'Unknown Sender'}
                               </h3>
                               <p className="text-sm text-gray-400 truncate">
                                 Subject: {email.subject || 'No Subject'}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="outline" className="border-green-400 text-green-400 text-xs">
-                                  Score: {credibilityData?.credibility_score || 'N/A'}
+                                  Score: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
                                 </Badge>
                                 <Badge variant="outline" className="border-blue-400 text-blue-400 text-xs">
-                                  {credibilityData?.email_intent || 'Unknown Intent'}
+                                  {credibilityData?.email_intent || credibilityData?.intent || 'Unknown Intent'}
                                 </Badge>
                               </div>
                             </div>
                           </div>
 
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700">
-                              <DropdownMenuItem 
-                                onClick={() => openDialog('subject', { email, credibilityData })}
-                                className="text-white hover:bg-gray-700 cursor-pointer"
-                              >
-                                <Mail className="mr-2 h-4 w-4" />
-                                Subject & Body
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => openDialog('credibility', { email, credibilityData })}
-                                className="text-white hover:bg-gray-700 cursor-pointer"
-                              >
-                                <Shield className="mr-2 h-4 w-4" />
-                                Company Credibility
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => openDialog('intent', { email, credibilityData })}
-                                className="text-white hover:bg-gray-700 cursor-pointer"
-                              >
-                                <Briefcase className="mr-2 h-4 w-4" />
-                                Intent
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => openDialog('summary', { email, credibilityData })}
-                                className="text-white hover:bg-gray-700 cursor-pointer"
-                              >
-                                <Bot className="mr-2 h-4 w-4" />
-                                AI Summary
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex-shrink-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700">
+                                  <MoreVertical className="h-4 w-4" />
+                                  <span className="sr-only">Open menu</span>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-gray-800 border-gray-700 w-56">
+                                <DropdownMenuItem 
+                                  onClick={() => openDialog('subject', { email, credibilityData })}
+                                  className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
+                                >
+                                  <Mail className="mr-2 h-4 w-4" />
+                                  Subject & Body
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => openDialog('credibility', { email, credibilityData })}
+                                  className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
+                                >
+                                  <Shield className="mr-2 h-4 w-4" />
+                                  Company Credibility
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => openDialog('intent', { email, credibilityData })}
+                                  className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
+                                >
+                                  <Briefcase className="mr-2 h-4 w-4" />
+                                  Intent
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => openDialog('summary', { email, credibilityData })}
+                                  className="text-white hover:bg-gray-700 cursor-pointer focus:bg-gray-700"
+                                >
+                                  <Bot className="mr-2 h-4 w-4" />
+                                  AI Summary
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                       </div>
                     );
