@@ -320,15 +320,42 @@ export default function Dashboard() {
                     const credibilityData = findCredibilityForEmail(email);
                     return (
                       <div key={index} className="border border-gray-700 rounded-lg bg-gray-800/30 p-4">
-                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3 flex-1">
                             <div className="p-2 rounded-lg bg-blue-400/10">
                               <Mail className="h-5 w-5 text-blue-400" />
                             </div>
                             <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-white truncate">
-                                From: {email.sender && email.sender.trim() !== '' ? email.sender : 'Unknown Sender'}
-                              </h3>
+                              <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-semibold text-white truncate">
+                                  From: {email.sender && email.sender.trim() !== '' ? email.sender : 'Unknown Sender'}
+                                </h3>
+                                <div className="flex gap-1 ml-4">
+                                  <Button
+                                    size="sm"
+                                    className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 h-7"
+                                    onClick={() => {
+                                      const emailAddress = email.sender?.match(/<(.+)>/)?.[1] || email.sender;
+                                      window.open(`mailto:${emailAddress}`, '_blank');
+                                    }}
+                                  >
+                                    Reply
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black text-xs px-2 py-1 h-7"
+                                    onClick={() => {
+                                      toast({
+                                        title: "Coming Soon",
+                                        description: "Schedule Meeting feature will be available soon."
+                                      });
+                                    }}
+                                  >
+                                    Schedule a Meet
+                                  </Button>
+                                </div>
+                              </div>
                               <p className="text-sm text-gray-400 truncate">
                                 Subject: {email.subject || 'No Subject'}
                               </p>
@@ -342,34 +369,6 @@ export default function Dashboard() {
                               </div>
                             </div>
                           </div>
-
-                          <div className="flex flex-col gap-2 w-full md:w-auto">
-                              <div className="flex gap-1 w-full">
-                                <Button
-                                  size="sm"
-                                  className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 h-7 flex-1 md:flex-none"
-                                  onClick={() => {
-                                    const emailAddress = email.sender?.match(/<(.+)>/)?.[1] || email.sender;
-                                    window.open(`mailto:${emailAddress}`, '_blank');
-                                  }}
-                                >
-                                  Reply
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black text-xs px-2 py-1 h-7 flex-1 md:flex-none"
-                                  onClick={() => {
-                                    toast({
-                                      title: "Coming Soon",
-                                      description: "Schedule Meeting feature will be available soon."
-                                    });
-                                  }}
-                                >
-                                  Schedule a Meet
-                                </Button>
-                              </div>
-                            </div>
 
                           <div className="flex-shrink-0">
                             <DropdownMenu>

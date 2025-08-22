@@ -177,7 +177,7 @@ class GmailOAuthService:
             query = "is:unread"
 
             # Use a reasonable batch size to avoid overwhelming the API
-            batch_size = 10
+            batch_size = 50
 
             response = await self._make_request(
                 "GET",
@@ -247,25 +247,44 @@ class GmailOAuthService:
             start_of_week = today - timedelta(days=today.weekday())
             start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
 
-            # Format date for Gmail query
+            # Format date for Gmail query (use different format)
             query_date = start_of_week.strftime("%Y/%m/%d")
             query = f"in:inbox after:{query_date}"
 
             logging.info(f"📊 Fetching emails from this week starting {query_date}")
 
+            # Use the Gmail service directly for more reliable results
+            service = await self._get_service()
+            if service:
+                try:
+                    result = service.users().messages().list(
+                        userId='me',
+                        q=query,
+                        maxResults=500
+                    ).execute()
+                    
+                    messages = result.get('messages', [])
+                    total_count = len(messages)
+                    
+                    logging.info(f"📊 Found {total_count} emails received this week via Gmail API")
+                    return total_count
+                except Exception as api_error:
+                    logging.warning(f"Gmail API failed, falling back to HTTP request: {api_error}")
+            
+            # Fallback to HTTP request if Gmail API fails
             response = await self._make_request(
                 "GET",
                 "https://www.googleapis.com/gmail/v1/users/me/messages",
                 params={
                     "q": query,
-                    "maxResults": 500  # Higher limit to get accurate count
+                    "maxResults": 500
                 }
             )
 
             messages = response.get("messages", [])
             total_count = len(messages)
 
-            logging.info(f"📊 Found {total_count} emails received this week")
+            logging.info(f"📊 Found {total_count} emails received this week via HTTP")
             return total_count
 
         except Exception as e:
@@ -349,10 +368,13 @@ class GmailOAuthService:
                         "indeed.com": "Indeed",
                         "internshala.com": "Internshala",
                         "krishtechnolabs.com": "Krish Technolabs",
+                        "kekamail.com": "Krish Technolabs",
                         "linkedin.com": "LinkedIn",
                         "github.com": "GitHub",
                         "google.com": "Google",
-                        "microsoft.com": "Microsoft"
+                        "microsoft.com": "Microsoft",
+                        "naukri.com": "Naukri",
+                        "hirist.com": "Hirist"
                     }
 
                     # Check for exact domain match first
