@@ -18,6 +18,12 @@ from app.api.endpoints import fetch, research, report, orchestrate
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 
+# Debug OAuth configuration
+print(f"🔧 Google Client ID loaded: {'Yes' if settings.GOOGLE_CLIENT_ID else 'No'}")
+print(f"🔧 Google Client Secret loaded: {'Yes' if settings.GOOGLE_CLIENT_SECRET else 'No'}")
+if settings.GOOGLE_CLIENT_ID:
+    print(f"🔧 Client ID preview: {settings.GOOGLE_CLIENT_ID[:20]}...")
+
 app = FastAPI(title="Narrisia AI Platform")
 
 # CORS middleware
