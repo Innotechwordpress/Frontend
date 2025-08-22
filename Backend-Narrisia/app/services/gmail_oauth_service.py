@@ -178,7 +178,7 @@ class GmailOAuthService:
                     # Search for unread emails in primary inbox only
                     results = service.users().messages().list(
                         userId='me',
-                        q='is:unread in:inbox category:primary',
+                        q='is:unread in:primary',
                         maxResults=50
                     ).execute()
 

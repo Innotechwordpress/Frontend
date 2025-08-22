@@ -385,16 +385,11 @@ export default function Dashboard() {
         <Dialog open={!!selectedDialog} onOpenChange={closeDialog}>
           <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <div className="flex items-center justify-between">
-                <DialogTitle className="text-xl">
-                  {selectedDialog?.type === 'subject' && "Email Subject & Body"}
-                  {selectedDialog?.type === 'credibility' && "Company Credibility Analysis"}
-                  {selectedDialog?.type === 'intent_summary' && "Intent & AI Summary"}
-                </DialogTitle>
-                <Button variant="ghost" onClick={closeDialog} className="h-8 w-8 p-0">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              <DialogTitle className="text-xl">
+                {selectedDialog?.type === 'subject' && "Email Subject & Body"}
+                {selectedDialog?.type === 'credibility' && "Company Credibility Analysis"}
+                {selectedDialog?.type === 'intent_summary' && "Intent & AI Summary"}
+              </DialogTitle>
             </DialogHeader>
 
             {selectedDialog?.type === 'subject' && (
