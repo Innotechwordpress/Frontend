@@ -377,7 +377,10 @@ async def start_parsing(request: Request):
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.get(
                 f"http://localhost:5000/fetch/fetch/processed",
-                headers={"oauth-token": access_token}
+                headers={
+                    "oauth-token": access_token,
+                    "Content-Type": "application/json"
+                }
             )
 
             if response.status_code == 200:

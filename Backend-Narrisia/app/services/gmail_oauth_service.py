@@ -175,19 +175,45 @@ class GmailOAuthService:
 
             def fetch_messages():
                 try:
+                    # First, try to get any recent emails to debug the issue
+                    debug_results = service.users().messages().list(
+                        userId='me',
+                        q='in:inbox',
+                        maxResults=10
+                    ).execute()
+                    debug_messages = debug_results.get('messages', [])
+                    logging.info(f"Debug: Found {len(debug_messages)} total inbox messages")
+
                     # Search for unread emails in primary inbox only
                     results = service.users().messages().list(
                         userId='me',
-                        q='is:unread in:primary',
+                        q='is:unread in:inbox',
                         maxResults=50
                     ).execute()
 
                     messages = results.get('messages', [])
-                    logging.info(f"Found {len(messages)} unread messages")
+                    logging.info(f"Found {len(messages)} unread messages with query 'is:unread in:inbox'")
 
+                    # If no unread found, try a broader search
                     if not messages:
-                        logging.info("No unread messages found")
-                        return []
+                        logging.info("No unread messages found with primary query, trying broader search...")
+                        
+                        # Try searching for recent emails (last 3 days)
+                        import datetime
+                        three_days_ago = (datetime.datetime.now() - datetime.timedelta(days=3)).strftime('%Y/%m/%d')
+                        
+                        results = service.users().messages().list(
+                            userId='me',
+                            q=f'in:inbox after:{three_days_ago}',
+                            maxResults=20
+                        ).execute()
+                        
+                        messages = results.get('messages', [])
+                        logging.info(f"Found {len(messages)} recent messages in last 3 days")
+                        
+                        if not messages:
+                            logging.info("No recent messages found either")
+                            return []
 
                     emails = []
                     for message in messages:
@@ -198,13 +224,29 @@ class GmailOAuthService:
                                 format='full'
                             ).execute()
 
+                            # Check if message is actually unread
+                            labels = msg.get('labelIds', [])
+                            is_unread = 'UNREAD' in labels
+                            is_inbox = 'INBOX' in labels
+                            
+                            logging.info(f"Message {message['id']}: labels={labels}, unread={is_unread}, inbox={is_inbox}")
+
                             # Parse email data
                             email_data = self._parse_email_message(msg)
+                            email_data['is_unread'] = is_unread
+                            email_data['labels'] = labels
+                            
+                            # For debugging, include all recent emails but mark their status
                             emails.append(email_data)
+                            
                         except Exception as msg_error:
                             logging.warning(f"Failed to fetch message {message['id']}: {msg_error}")
                             continue
 
+                    # Log summary of what we found
+                    unread_count = sum(1 for email in emails if email.get('is_unread', False))
+                    logging.info(f"Summary: {len(emails)} total emails, {unread_count} actually unread")
+                    
                     return emails
                 except HttpError as error:
                     logging.error(f"Gmail API error: {error}")
