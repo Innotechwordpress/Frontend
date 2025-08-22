@@ -142,21 +142,15 @@ class ResearchEngine:
                 if key not in raw_metrics:
                     raw_metrics[key] = default_value
 
-        # Step 3: Score Calculation - Use comprehensive details with fallback to raw metrics
-        # Calculate age from founded year
-        current_year = 2024
-        founded_year = comprehensive_details.get("founded", raw_metrics.get("founded_year"))
-        age_years = current_year - founded_year if founded_year and isinstance(founded_year, int) else raw_metrics.get("age_years", 5)
-        
-        # Use comprehensive details first, then fallback to raw metrics
+        # Step 3: Score Calculation - Filter parameters for credibility function
         credibility_params = {
-            "age_years": age_years,
-            "market_cap": comprehensive_details.get("market_cap", raw_metrics.get("market_cap", 0)),
-            "employees": comprehensive_details.get("employee_count", raw_metrics.get("employee_count", 100)),
-            "domain_age": comprehensive_details.get("domain_age", raw_metrics.get("domain_age", 5)),
-            "sentiment_score": comprehensive_details.get("sentiment_score", raw_metrics.get("sentiment_score", 0.5)),
-            "certified": comprehensive_details.get("business_verified", raw_metrics.get("certified", False)),
-            "funded_by_top_investors": len(comprehensive_details.get("investors", [])) > 0 or raw_metrics.get("funded_by_top_investors", False)
+            "age_years": raw_metrics.get("age_years", 5),
+            "market_cap": raw_metrics.get("market_cap", 0),
+            "employees": raw_metrics.get("employee_count", 100),
+            "domain_age": raw_metrics.get("domain_age", 5),
+            "sentiment_score": raw_metrics.get("sentiment_score", 0.5),
+            "certified": raw_metrics.get("certified", False),
+            "funded_by_top_investors": raw_metrics.get("funded_by_top_investors", False)
         }
         credibility_score, score_breakdown = compute_credibility_score(**credibility_params)
 

@@ -90,9 +90,30 @@ async def trigger_auto_processing(raw_emails, oauth_token):
                 raw_metrics = report.credibility.raw_metrics if report.credibility else {}
                 score_breakdown = report.credibility.score_breakdown if report.credibility else {}
                 
-                # Calculate founded year from age_years
+                # If we have comprehensive details, recalculate credibility score with better data
+                if comprehensive_details:
+                    from app.utils.credibility import compute_credibility_score
+                    
+                    # Calculate age from founded year
+                    current_year = 2024
+                    founded_year = comprehensive_details.get("founded", raw_metrics.get("founded_year"))
+                    age_years = current_year - founded_year if founded_year and isinstance(founded_year, int) else raw_metrics.get("age_years", 5)
+                    
+                    # Use comprehensive details with fallback to raw metrics
+                    enhanced_credibility_params = {
+                        "age_years": age_years,
+                        "market_cap": comprehensive_details.get("market_cap", raw_metrics.get("market_cap", 0)),
+                        "employees": comprehensive_details.get("employee_count", raw_metrics.get("employee_count", 100)),
+                        "domain_age": comprehensive_details.get("domain_age", raw_metrics.get("domain_age", 5)),
+                        "sentiment_score": comprehensive_details.get("sentiment_score", raw_metrics.get("sentiment_score", 0.5)),
+                        "certified": comprehensive_details.get("business_verified", raw_metrics.get("certified", False)),
+                        "funded_by_top_investors": len(comprehensive_details.get("investors", [])) > 0 or raw_metrics.get("funded_by_top_investors", False)
+                    }
+                    credibility_score, score_breakdown = compute_credibility_score(**enhanced_credibility_params)
+                
+                # Calculate founded year from age_years if not available
                 current_year = 2024
-                founded_year = raw_metrics.get("founded_year", current_year - raw_metrics.get("age_years", 0))
+                founded_year = comprehensive_details.get("founded", raw_metrics.get("founded_year", current_year - raw_metrics.get("age_years", 0)))
                 
                 # Determine contact quality based on credibility score and intent
                 contact_quality = "High" if credibility_score > 70 else "Medium" if credibility_score > 40 else "Low"
