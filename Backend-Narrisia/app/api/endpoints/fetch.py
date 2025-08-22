@@ -44,9 +44,20 @@ async def trigger_auto_processing(raw_emails, oauth_token):
         for email in raw_emails:
             try:
                 sender = email.get("sender", "")
-                logging.info(f"📧 Email raw data - ID: {email.get('id', 'N/A')}, Sender: '{sender}', Subject: '{email.get('subject', 'N/A')}'")
-                company_name = extract_domain_as_company_name(sender)
-                logging.info(f"🔍 Processing company: {company_name} from sender: {sender}")
+                subject = email.get("subject", "")
+                body = email.get("body", "") or email.get("snippet", "")
+                
+                logging.info(f"📧 Email raw data - ID: {email.get('id', 'N/A')}, Sender: '{sender}', Subject: '{subject}'")
+                
+                # Use enhanced company extraction that analyzes email content
+                from app.utils.extract import extract_company_name_from_email_content
+                company_name = extract_company_name_from_email_content(
+                    sender=sender,
+                    subject=subject,
+                    body=body,
+                    email_data=email
+                )
+                logging.info(f"🔍 Processing company: {company_name} from comprehensive analysis")
 
                 # Get comprehensive company details from OpenAI
                 comprehensive_details = await company_details_service.get_comprehensive_details(company_name)
@@ -54,8 +65,8 @@ async def trigger_auto_processing(raw_emails, oauth_token):
                 # Research company and get credibility score
                 report = await engine.research_company(company_name)
 
-                # Extract email content for classification and summarization
-                email_body = email.get("body") or email.get("snippet", "")
+                # Use the body already extracted above
+                email_body = body
 
                 # Generate AI summary of email content
                 email_summary = ""
