@@ -320,17 +320,17 @@ export default function Dashboard() {
                     const credibilityData = findCredibilityForEmail(email);
                     return (
                       <div key={index} className="border border-gray-700 rounded-lg bg-gray-800/30 p-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="p-2 rounded-lg bg-blue-400/10">
-                              <Mail className="h-5 w-5 text-blue-400" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 rounded-lg bg-blue-400/10">
+                            <Mail className="h-5 w-5 text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="space-y-2">
+                              <div>
                                 <h3 className="text-lg font-semibold text-white truncate">
                                   From: {email.sender && email.sender.trim() !== '' ? email.sender : 'Unknown Sender'}
                                 </h3>
-                                <div className="flex gap-1 ml-4">
+                                <div className="flex gap-2 mt-1">
                                   <Button
                                     size="sm"
                                     className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 h-7"
@@ -370,7 +370,7 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          <div className="flex-shrink-0">
+                          <div className="flex-shrink-0 ml-2">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700">
