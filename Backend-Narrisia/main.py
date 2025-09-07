@@ -372,14 +372,27 @@ async def start_parsing(request: Request):
     if not access_token:
         raise HTTPException(status_code=401, detail="OAuth token required")
 
+    # Get domain context from request body
+    domain_context = ""
     try:
-        # Use the existing processed fetch endpoint with longer timeout
+        request_body = await request.json()
+        domain_context = request_body.get('domain_context', '').strip() if request_body else ''
+        print(f"🎯 Domain context received in main.py: '{domain_context}'")
+    except Exception as e:
+        print(f"❌ Failed to parse request body in main.py: {e}")
+
+    try:
+        print(f"🚀 Calling FastAPI start-parsing endpoint with domain context")
+        # Use the CORRECT FastAPI endpoint with domain context
         async with httpx.AsyncClient(timeout=120.0) as client:
-            response = await client.get(
-                f"http://localhost:5000/fetch/fetch/processed",
+            response = await client.post(
+                f"http://localhost:5000/fetch/start-parsing",
                 headers={
                     "oauth-token": access_token,
                     "Content-Type": "application/json"
+                },
+                json={
+                    "domain_context": domain_context
                 }
             )
 
@@ -388,6 +401,7 @@ async def start_parsing(request: Request):
                 emails = processed_data.get("emails", [])
                 credibility_analysis = processed_data.get("credibility_analysis", [])
 
+                print(f"✅ Successfully got {len(credibility_analysis)} processed emails with relevancy")
                 return {
                     "emails": emails,
                     "count": len(emails),
@@ -395,7 +409,7 @@ async def start_parsing(request: Request):
                 }
             else:
                 error_text = response.text
-                print(f"FastAPI processed endpoint error: {response.status_code} - {error_text}")
+                print(f"FastAPI start-parsing endpoint error: {response.status_code} - {error_text}")
                 raise HTTPException(status_code=response.status_code, detail=f"Processing failed: {error_text}")
 
     except httpx.TimeoutException:
