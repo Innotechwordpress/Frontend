@@ -29,9 +29,11 @@ async def process_single_email(email, settings, oauth_token):
 
         # Use enhanced company extraction
         from app.utils.extract import extract_company_name_from_email_content
-        company_name = extract_company_name_from_email_content(
+        company_result = extract_company_name_from_email_content(
             sender=sender, subject=subject, body=body, email_data=email
         )
+        company_name = company_result["company_name"]
+        is_personal_email = company_result["is_personal_email"]
 
         # Simplified processing - make one combined OpenAI call instead of multiple
         from openai import AsyncOpenAI
@@ -166,10 +168,11 @@ async def process_single_email(email, settings, oauth_token):
                     "business_verified": credibility_score > 70,
                     "market_cap": market_cap,
                     "revenue": revenue,
-                    "funding_status": funding_status
+                    "funding_status": funding_status,
+                    "is_personal_email": is_personal_email
                 },
                 "email_intent": "business_inquiry",
-                "email_summary": f"Email from {company_name}",
+                "email_summary": f"Email from {company_name}{'(Personal Email)' if is_personal_email else ''}",
                 "company_gist": company_gist,
                 "intent_confidence": 0.8
             }

@@ -2,10 +2,10 @@ import re
 import logging
 
 # ✅ Single sender extraction
-def extract_company_name_from_email_content(sender: str, subject: str = "", body: str = "", email_data: dict = None) -> str:
+def extract_company_name_from_email_content(sender: str, subject: str = "", body: str = "", email_data: dict = None) -> dict:
     """
     Extract company name by analyzing email sender, subject, body, and signature.
-    This provides more accurate company identification than domain-only analysis.
+    Returns both company name and personal email flag.
     """
     print(f"🎯 Analyzing email content to extract company name")
     print(f"📧 Sender: '{sender}'")
@@ -13,24 +13,46 @@ def extract_company_name_from_email_content(sender: str, subject: str = "", body
     
     if not sender or sender.strip() == "":
         print(f"⚠️ Empty sender provided")
-        return "Unknown"
+        return {"company_name": "Unknown", "is_personal_email": False}
 
-    # Step 1: Try to extract from sender display name first
+    # Check if it's a personal email domain first
+    is_personal = _is_personal_email_domain(sender)
+    
+    if is_personal:
+        # For personal emails, prioritize content analysis
+        company_from_content = _extract_from_email_content(body, subject)
+        if company_from_content and company_from_content != "Unknown":
+            print(f"✅ Company found from personal email content: {company_from_content}")
+            return {"company_name": company_from_content, "is_personal_email": True}
+        
+        # Try signature analysis for personal emails
+        company_from_signature = _extract_from_email_signature(body)
+        if company_from_signature and company_from_signature != "Unknown":
+            print(f"✅ Company found from personal email signature: {company_from_signature}")
+            return {"company_name": company_from_signature, "is_personal_email": True}
+        
+        # Fallback to display name for personal emails
+        company_from_sender = _extract_from_sender_display_name(sender)
+        if company_from_sender and company_from_sender != "Unknown":
+            print(f"✅ Company found from personal email sender: {company_from_sender}")
+            return {"company_name": company_from_sender, "is_personal_email": True}
+        
+        return {"company_name": "Personal Email", "is_personal_email": True}
+    
+    # For business emails, follow original logic
     company_from_sender = _extract_from_sender_display_name(sender)
     if company_from_sender and company_from_sender != "Unknown":
         print(f"✅ Company found from sender display: {company_from_sender}")
-        return company_from_sender
+        return {"company_name": company_from_sender, "is_personal_email": False}
 
-    # Step 2: Analyze email signature and body for company mentions
     company_from_content = _extract_from_email_content(body, subject)
     if company_from_content and company_from_content != "Unknown":
         print(f"✅ Company found from email content: {company_from_content}")
-        return company_from_content
+        return {"company_name": company_from_content, "is_personal_email": False}
 
-    # Step 3: Fallback to domain analysis
     company_from_domain = _extract_from_domain(sender)
     print(f"🔄 Fallback to domain analysis: {company_from_domain}")
-    return company_from_domain
+    return {"company_name": company_from_domain, "is_personal_email": False}
 
 def _extract_from_sender_display_name(sender: str) -> str:
     """Extract company from sender display name"""
@@ -169,6 +191,66 @@ def _extract_from_domain(sender: str) -> str:
     
     return "Unknown"
 
+def _is_personal_email_domain(sender: str) -> bool:
+    """Check if the email sender is from a personal email domain"""
+    email_match = re.search(r'<([^>]+)>', sender)
+    email = email_match.group(1) if email_match else sender.strip()
+    
+    if "@" in email:
+        domain = email.split("@")[1].lower()
+        personal_domains = [
+            "gmail.com", "googlemail.com", "yahoo.com", "yahoo.co.in", 
+            "hotmail.com", "outlook.com", "live.com", "msn.com",
+            "aol.com", "icloud.com", "me.com", "mac.com",
+            "protonmail.com", "tutanota.com", "rediffmail.com",
+            "yandex.com", "mail.com", "zoho.com"
+        ]
+        return domain in personal_domains
+    
+    return False
+
+def _extract_from_email_signature(body: str) -> str:
+    """Extract company name from email signature"""
+    if not body:
+        return "Unknown"
+    
+    lines = body.strip().split('\n')
+    signature_start = -1
+    
+    # Look for signature indicators
+    signature_indicators = [
+        "best regards", "regards", "sincerely", "thanks", "thank you",
+        "cheers", "sent from", "--", "___"
+    ]
+    
+    for i, line in enumerate(lines):
+        line_lower = line.lower().strip()
+        for indicator in signature_indicators:
+            if indicator in line_lower:
+                signature_start = i
+                break
+        if signature_start != -1:
+            break
+    
+    if signature_start == -1:
+        signature_start = max(0, len(lines) - 10)  # Last 10 lines as potential signature
+    
+    # Analyze signature lines for company names
+    for i in range(signature_start, len(lines)):
+        line = lines[i].strip()
+        if not line or len(line) < 3:
+            continue
+            
+        # Skip lines that look like contact info
+        if any(x in line.lower() for x in ["phone:", "email:", "tel:", "mobile:", "@"]):
+            continue
+            
+        # Look for company patterns in signature
+        if _is_likely_company_name(line):
+            return line.strip()
+    
+    return "Unknown"
+
 def _is_likely_company_name(name: str) -> bool:
     """Check if a string is likely a company name vs personal name"""
     name_lower = name.lower()
@@ -177,7 +259,8 @@ def _is_likely_company_name(name: str) -> bool:
     company_indicators = [
         "technologies", "labs", "inc", "corp", "ltd", "llc", "solutions", 
         "systems", "group", "company", "enterprises", "consulting", "services",
-        "platform", "tech", "software", "digital", "ai", "data"
+        "platform", "tech", "software", "digital", "ai", "data", "pvt", "private",
+        "limited", "co.", "corporation", "incorporated"
     ]
     
     # Personal name indicators (to exclude)
@@ -209,7 +292,10 @@ def _is_likely_company_name(name: str) -> bool:
 # Legacy function for backward compatibility
 def extract_domain_as_company_name(sender: str) -> str:
     """Legacy function - now uses content analysis"""
-    return extract_company_name_from_email_content(sender)
+    result = extract_company_name_from_email_content(sender)
+    if isinstance(result, dict):
+        return result["company_name"]
+    return result
 
 # ✅ Batch extractor — uses the above
 def extract_company_names(emails):

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -9,10 +9,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import { TrendingUp, Users, Target, Zap, BarChart3, Calendar, Activity, ArrowRight, Brain, Rocket, Shield, Building, MoreVertical, X, Mail, Briefcase, FileText, Bot } from "lucide-react";
+import { TrendingUp, Users, Target, Zap, BarChart3, Calendar, Activity, ArrowRight, Brain, Rocket, Shield, Building, MoreVertical, X, Mail, Briefcase, FileText, Bot, User } from "lucide-react";
+import { ProgressBar } from "@/components/ui/progress-bar";
+import { useProgressLoader } from "@/hooks/useProgressLoader";
 
 export default function Dashboard() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [unreadEmails, setUnreadEmails] = useState([]);
@@ -23,6 +25,7 @@ export default function Dashboard() {
     type: 'subject' | 'credibility' | 'intent_summary';
     data: any;
   } | null>(null);
+  const { progress, currentStep, isLoading: isProgressLoading, startProgress, resetProgress } = useProgressLoader();
 
   // Update time every minute for live greeting
   useEffect(() => {
@@ -71,7 +74,7 @@ export default function Dashboard() {
     }
   }, [user, toast]);
 
-  if (isLoading) {
+  if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
@@ -177,6 +180,62 @@ export default function Dashboard() {
     setSelectedDialog(null);
   };
 
+  // Function to handle email parsing with progress
+  const handleParseEmails = async () => {
+    resetProgress(); // Reset progress before starting
+
+    // Define progress steps for email parsing
+    const progressSteps = [
+      { id: 'connecting', label: 'Connecting to email server...', duration: 1000 },
+      { id: 'fetching', label: 'Fetching unread emails...', duration: 2000 },
+      { id: 'parsing', label: 'Parsing email content...', duration: 2500 },
+      { id: 'analyzing', label: 'Analyzing company details...', duration: 3000 },
+      { id: 'classifying', label: 'Classifying email intent...', duration: 1500 },
+      { id: 'finalizing', label: 'Finalizing results...', duration: 1000 }
+    ];
+
+    try {
+      // Start progress animation
+      startProgress(progressSteps, () => {
+        console.log('Email parsing completed!');
+      });
+
+      // Fetch emails with progress indication
+      const response = await fetch("/api/emails/start-parsing", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to process emails.");
+      }
+
+      const data = await response.json();
+      console.log("Parsing completed:", data);
+
+      // Update the state with processed data
+      setUnreadEmails(data.emails || []);
+      setUnreadCount(data.count || 0);
+      setCredibilityAnalysis(data.credibility_analysis || []);
+
+      toast({ 
+        title: "Parsing Complete", 
+        description: "Email analysis and credibility scoring completed!" 
+      });
+    } catch (error: any) {
+      console.error("Error starting parsing:", error);
+      toast({
+        title: "Parsing Failed",
+        description: error.message || "Failed to start email parsing.",
+        variant: "destructive",
+      });
+      resetProgress(); // Reset progress on error
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Navbar />
@@ -233,6 +292,23 @@ export default function Dashboard() {
           ))}
         </div>
 
+        {/* Progress Bar */}
+        {isProgressLoading && (
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <ProgressBar 
+                progress={progress} 
+                className="mb-2"
+                showPercentage={true}
+              />
+              {currentStep && (
+                <p className="text-sm text-gray-600 text-center">{currentStep}</p>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+
         {/* Email Research & Classification Section */}
         <div className="mb-8">
           <Card className="bg-gray-900 border-gray-800">
@@ -249,53 +325,12 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <Button
                   className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md flex items-center gap-2"
-                  onClick={async () => {
-                    toast({ title: "Parsing Started", description: "Email analysis has begun." });
-
-                    try {
-                      const response = await fetch("/api/emails/start-parsing", {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                      });
-
-                      if (response.ok) {
-                        const data = await response.json();
-                        console.log("Parsing completed:", data);
-
-                        // Update the state with processed data
-                        setUnreadEmails(data.emails || []);
-                        setUnreadCount(data.count || 0);
-                        setCredibilityAnalysis(data.credibility_analysis || []);
-
-                        toast({ 
-                          title: "Parsing Complete", 
-                          description: "Email analysis and credibility scoring completed!" 
-                        });
-                      } else {
-                        const errorData = await response.json();
-                        toast({
-                          title: "Parsing Failed",
-                          description: errorData.message || "Failed to process emails.",
-                          variant: "destructive",
-                        });
-                      }
-                    } catch (error) {
-                      console.error("Error starting parsing:", error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to start email parsing.",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
+                  onClick={handleParseEmails}
+                  disabled={isProgressLoading}
                 >
                   <Zap className="w-4 h-4" />
                   Start Parsing
                 </Button>
-
-
               </div>
             </CardContent>
           </Card>

@@ -31,6 +31,7 @@ class CompanyProfile(BaseModel):
     name: str
     description: Optional[str] = None
     website: Optional[str] = None
+    is_personal_email: Optional[bool] = False
 
 class CredibilityScore(BaseModel):
     score: float
