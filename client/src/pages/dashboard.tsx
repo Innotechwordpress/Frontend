@@ -514,7 +514,12 @@ export default function Dashboard() {
                               <p className="text-sm text-gray-400 truncate">
                                 Subject: {email.subject || 'No Subject'}
                               </p>
-                              <div className="flex items-center gap-2 mt-1">
+                              {credibilityData?.relevancy_explanation && (
+                                <p className="text-xs text-gray-300 italic mt-1 mb-2">
+                                  {credibilityData.relevancy_explanation}
+                                </p>
+                              )}
+                              <div className="flex items-center gap-2 mt-1"></div>
                                 <Badge variant="outline" className="border-green-400 text-green-400 text-xs">
                                   Credibility: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
                                 </Badge>
