@@ -65,13 +65,14 @@ Score Guidelines:
         # Parse JSON
         parsed = json.loads(cleaned)
         
-        # Ensure score is within bounds
+        # Ensure score is within bounds and convert to 0-1 scale
         relevancy_score = max(0, min(100, parsed.get('relevancy_score', 50)))
+        relevancy_score_normalized = relevancy_score / 100.0  # Convert to 0-1 scale
         
-        print(f"✅ Parsed relevancy score: {relevancy_score}")
+        print(f"✅ Parsed relevancy score: {relevancy_score}% (normalized: {relevancy_score_normalized})")
         
         return {
-            "relevancy_score": relevancy_score,
+            "relevancy_score": relevancy_score_normalized,  # Return as 0-1 scale
             "relevancy_explanation": parsed.get('relevancy_explanation', 'No explanation provided'),
             "relevancy_confidence": max(0, min(1, parsed.get('relevancy_confidence', 0.5)))
         }

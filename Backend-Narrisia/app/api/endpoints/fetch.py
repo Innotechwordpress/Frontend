@@ -126,7 +126,7 @@ async def process_single_email(email, settings, oauth_token):
 
             # Initialize company_analysis for fallback
             company_analysis = {}
-            
+
             # Generate better fallback based on company name
             credibility_score = 75  # Default
             if company_name.lower() in ["indeed", "stripe", "google", "microsoft", "amazon", "linkedin"]:
@@ -190,7 +190,7 @@ async def process_single_email(email, settings, oauth_token):
 
             # Initialize company_analysis for fallback
             company_analysis = {}
-            
+
             # Generate credibility score based on company recognition
             credibility_score = 60  # Default
             if company_name.lower() in ["indeed", "stripe", "google", "microsoft", "amazon", "linkedin"]:
@@ -513,7 +513,7 @@ async def analyze_company_with_relevancy(company_name, email, domain_context, op
             else:
                 company_analysis["credibility_score"] = 65
             result_data["company_analysis"] = company_analysis
-        
+
         # Ensure relevancy score is handled if empty or invalid
         if "relevancy_score" not in result_data or not isinstance(result_data["relevancy_score"], (int, float)):
             result_data["relevancy_score"] = 0.0
@@ -593,7 +593,7 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
                         'body': email.get('body', email.get('snippet', '')),
                         'sender_domain': email.get('sender', '').split('@')[-1].split('>')[0] if '@' in email.get('sender', '') else ''
                     }
-                
+
                 return company_analysis
             else:
                 logger.error(f"❌ Failed to analyze: {company_name}")
@@ -607,8 +607,17 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
     tasks = [process_single_email_with_context(email) for email in emails]
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # Filter out None results and exceptions
-    valid_results = [result for result in results if result is not None and not isinstance(result, Exception)]
+    # Filter out None results and exceptions, and ensure relevancy_score is properly formatted
+    valid_results = []
+    for result in results:
+        if result is not None and not isinstance(result, Exception):
+            # Ensure relevancy_score is in the correct format for frontend
+            if isinstance(result, dict) and 'relevancy_score' in result:
+                # Convert relevancy_score to percentage format if it's between 0-1
+                if isinstance(result['relevancy_score'], (int, float)) and result['relevancy_score'] <= 1.0:
+                    result['relevancy_score'] = result['relevancy_score']  # Keep as 0-1 scale for frontend
+                logger.info(f"✅ Final relevancy score for {result.get('company_name', 'Unknown')}: {result['relevancy_score']}")
+            valid_results.append(result)
 
     return valid_results
 
@@ -619,24 +628,24 @@ async def validate_domain_context(request: Request):
     try:
         request_body = await request.json()
         domain_context = request_body.get('domain_context', '').strip()
-        
+
         if not domain_context:
             return {
                 "valid": False,
                 "message": "Domain context is required"
             }
-        
+
         # Test the context with OpenAI to ensure it's valid
         from openai import AsyncOpenAI
         import httpx
-        
+
         client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"), http_client=httpx.AsyncClient(timeout=15.0))
-        
+
         test_prompt = f"""
         Please analyze this business context and confirm if it's suitable for email relevancy scoring:
-        
+
         "{domain_context}"
-        
+
         Return JSON with:
         {{
           "valid": true/false,
@@ -644,27 +653,27 @@ async def validate_domain_context(request: Request):
           "message": "explanation"
         }}
         """
-        
+
         response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": test_prompt}],
             temperature=0.3,
             max_tokens=150
         )
-        
+
         raw_text = response.choices[0].message.content.strip()
         if raw_text.startswith("```json"):
             raw_text = raw_text.replace("```json", "").replace("```", "").strip()
-        
+
         result = json.loads(raw_text)
-        
+
         return {
             "valid": result.get("valid", True),
             "business_type": result.get("business_type", "Business"),
             "message": result.get("message", "Context validated successfully"),
             "ready_for_parsing": True
         }
-        
+
     except Exception as e:
         logger.error(f"❌ Error validating context: {e}")
         return {
@@ -675,10 +684,10 @@ async def validate_domain_context(request: Request):
 @router.post("/start-parsing", response_model=Dict)
 async def start_parsing(request: Request):
     """Start parsing emails with comprehensive analysis and relevancy scoring"""
-    
+
     # Extract OAuth token from Authorization header or oauth-token header
     oauth_token = None
-    
+
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         oauth_token = auth_header.split("Bearer ")[1]
@@ -736,5 +745,5 @@ async def start_parsing(request: Request):
         }
 
     except Exception as e:
-        logger.error(f"❌ Error in start-parsing: {e}")
+        logging.error(f"❌ Error in start-parsing: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process emails: {str(e)}")
