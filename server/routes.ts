@@ -748,47 +748,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Domain context received:", domainContext);
 
       // Call the CORRECT FastAPI endpoint with domain context
-      try {
-        const fastApiResponse = await fetch(
-          "http://localhost:5000/fetch/start-parsing",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "oauth-token": accessToken,
-            },
-            body: JSON.stringify({
-              domain_context: domainContext
-            })
+      const fastApiResponse = await fetch(
+        "http://localhost:5000/fetch/start-parsing",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "oauth-token": accessToken,
           },
-        );
+          body: JSON.stringify({
+            domain_context: domainContext || ""
+          }),
+        },
+      );
 
-        if (fastApiResponse.ok) {
-          const processedData = await fastApiResponse.json();
-          console.log("Successfully fetched processed emails with relevancy from FastAPI:", processedData);
+      if (fastApiResponse.ok) {
+        const processedData = await fastApiResponse.json();
+        console.log("Successfully fetched processed emails with relevancy from FastAPI:", processedData);
 
-          // Format the response for dashboard
-          const emails = processedData.emails || [];
-          const credibilityAnalysis = processedData.credibility_analysis || [];
+        // Format the response for dashboard
+        const emails = processedData.emails || [];
+        const credibilityAnalysis = processedData.credibility_analysis || [];
 
-          return res.json({
-            emails: emails,
-            count: emails.length,
-            credibility_analysis: credibilityAnalysis
-          });
-        } else {
-          console.log("FastAPI returned error for parsing:", fastApiResponse.status);
-          const errorText = await fastApiResponse.text();
-          console.log("FastAPI error details:", errorText);
+        return res.json({
+          emails: emails,
+          count: emails.length,
+          credibility_analysis: credibilityAnalysis
+        });
+      } else {
+        console.log("FastAPI returned error for parsing:", fastApiResponse.status);
+        const errorText = await fastApiResponse.text();
+        console.log("FastAPI error details:", errorText);
 
-          return res.status(500).json({
-            message: "Failed to process emails from FastAPI"
-          });
-        }
-      } catch (fetchError) {
-        console.error("Error fetching processed data from FastAPI:", fetchError);
         return res.status(500).json({
-          message: "Network error while processing emails"
+          message: "Failed to process emails from FastAPI"
         });
       }
     } catch (error) {
@@ -797,7 +790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  
+
 
   // Fetch emails from FastAPI
   app.get("/api/fetch-emails", async (req: any, res) => {
