@@ -544,13 +544,8 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
             company_name = await extract_company_name(email)
             logger.info(f"✅ Company found from email content: {company_name}")
 
-            # Get basic company analysis first
-            company_analysis = await analyze_company_with_relevancy(
-                company_name,
-                email,
-                domain_context,
-                os.getenv("OPENAI_API_KEY")
-            )
+            # Get basic company analysis using the working function
+            company_analysis = await process_single_email(email, {"OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"), "MODEL": "gpt-4o"}, "")
 
             if company_analysis:
                 logger.info(f"✅ Successfully analyzed email from {company_name}")
@@ -578,16 +573,26 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
                     relevancy_explanation = "No domain context provided"
                     relevancy_confidence = 0.0
 
-                # Add email details and relevancy score to the analysis
-                company_analysis.update({
-                    'sender': email.get('sender', 'Unknown'),
-                    'subject': email.get('subject', 'No Subject'),
-                    'body': email.get('body', email.get('snippet', '')),
-                    'sender_domain': email.get('sender', '').split('@')[-1].split('>')[0] if '@' in email.get('sender', '') else '',
-                    'relevancy_score': relevancy_score,
-                    'relevancy_explanation': relevancy_explanation,
-                    'relevancy_confidence': relevancy_confidence
-                })
+                # Update the existing company_analysis with relevancy data
+                if isinstance(company_analysis, dict):
+                    company_analysis.update({
+                        'relevancy_score': relevancy_score,
+                        'relevancy_explanation': relevancy_explanation,
+                        'relevancy_confidence': relevancy_confidence
+                    })
+                else:
+                    # If company_analysis is not a dict, create a new structure
+                    company_analysis = {
+                        'company_name': company_name,
+                        'credibility_score': 75,
+                        'relevancy_score': relevancy_score,
+                        'relevancy_explanation': relevancy_explanation,
+                        'relevancy_confidence': relevancy_confidence,
+                        'sender': email.get('sender', 'Unknown'),
+                        'subject': email.get('subject', 'No Subject'),
+                        'body': email.get('body', email.get('snippet', '')),
+                        'sender_domain': email.get('sender', '').split('@')[-1].split('>')[0] if '@' in email.get('sender', '') else ''
+                    }
                 
                 return company_analysis
             else:
