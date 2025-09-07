@@ -559,17 +559,17 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
                             domain_context=domain_context,
                             openai_api_key=os.getenv("OPENAI_API_KEY")
                         )
-                        relevancy_score = relevancy_result.get('relevancy_score', 50) / 100.0  # Convert to 0-1 scale
+                        relevancy_score = relevancy_result.get('relevancy_score', 50) / 100.0  # Convert to 0-1 scale for frontend
                         relevancy_explanation = relevancy_result.get('relevancy_explanation', '')
                         relevancy_confidence = relevancy_result.get('relevancy_confidence', 0.0)
-                        logger.info(f"✅ Relevancy score calculated: {relevancy_result.get('relevancy_score', 0)}%")
+                        logger.info(f"✅ Relevancy score calculated: {relevancy_result.get('relevancy_score', 0)}% (normalized: {relevancy_score})")
                     except Exception as relevancy_error:
                         logger.error(f"❌ Relevancy calculation failed: {relevancy_error}")
                         relevancy_score = 0.5  # Default neutral score
                         relevancy_explanation = "Relevancy calculation failed"
                         relevancy_confidence = 0.0
                 else:
-                    relevancy_score = 0.5  # Default neutral score when no context provided
+                    relevancy_score = 0.5  # Default neutral score when no context provided (50%)
                     relevancy_explanation = "No domain context provided"
                     relevancy_confidence = 0.0
 

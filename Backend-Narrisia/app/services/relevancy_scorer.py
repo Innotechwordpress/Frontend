@@ -72,7 +72,7 @@ Score Guidelines:
         print(f"✅ Parsed relevancy score: {relevancy_score}% (normalized: {relevancy_score_normalized})")
         
         return {
-            "relevancy_score": relevancy_score_normalized,  # Return as 0-1 scale
+            "relevancy_score": relevancy_score,  # Return as 0-100 scale
             "relevancy_explanation": parsed.get('relevancy_explanation', 'No explanation provided'),
             "relevancy_confidence": max(0, min(1, parsed.get('relevancy_confidence', 0.5)))
         }
