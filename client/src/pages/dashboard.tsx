@@ -464,7 +464,14 @@ export default function Dashboard() {
                                   Credibility: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
                                 </Badge>
                                 <Badge variant="outline" className="border-purple-400 text-purple-400 text-xs">
-                                  Relevancy: {credibilityData?.relevancy_score !== undefined && credibilityData?.relevancy_score !== null && credibilityData?.relevancy_score !== 'N/A' ? `${Number(credibilityData.relevancy_score).toFixed(1)}%` : 'N/A'}
+                                  Relevancy: {(() => {
+                                    console.log('Relevancy debug for', credibilityData?.company_name, ':', credibilityData?.relevancy_score, typeof credibilityData?.relevancy_score);
+                                    const score = credibilityData?.relevancy_score;
+                                    if (score !== undefined && score !== null && score !== 'N/A' && !isNaN(Number(score))) {
+                                      return `${Number(score).toFixed(1)}%`;
+                                    }
+                                    return 'N/A';
+                                  })()}
                                 </Badge>
                                 <Badge variant="outline" className="border-blue-400 text-blue-400 text-xs">
                                   {credibilityData?.intent || credibilityData?.email_intent || 'Unknown Intent'}

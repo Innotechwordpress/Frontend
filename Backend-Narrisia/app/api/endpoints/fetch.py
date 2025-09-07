@@ -598,7 +598,7 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
 
                 # Ensure company_analysis is a dictionary and update with relevancy data
                 if isinstance(company_analysis, dict):
-                    # Force update relevancy fields
+                    # Force update relevancy fields - CRITICAL: Assign the values directly
                     company_analysis['relevancy_score'] = float(relevancy_score)
                     company_analysis['relevancy_explanation'] = str(relevancy_explanation)
                     company_analysis['relevancy_confidence'] = float(relevancy_confidence)
@@ -609,6 +609,26 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
                     print(f"   Relevancy: {company_analysis.get('relevancy_score', 'N/A')}% (type: {type(company_analysis.get('relevancy_score'))})")
                     print(f"   Intent: {company_analysis.get('intent', 'Unknown')}")
                     print(f"   Keys in analysis: {list(company_analysis.keys())}")
+                    
+                    # Ensure all required fields are present for frontend
+                    required_fields = {
+                        'company_name': company_analysis.get('company_name', 'Unknown'),
+                        'credibility_score': company_analysis.get('credibility_score', 75.0),
+                        'relevancy_score': float(relevancy_score),
+                        'relevancy_explanation': str(relevancy_explanation), 
+                        'relevancy_confidence': float(relevancy_confidence),
+                        'sender': sender,
+                        'sender_domain': company_analysis.get('sender_domain', 'Unknown'),
+                        'intent': company_analysis.get('intent', 'business_inquiry'),
+                        'email_summary': company_analysis.get('email_summary', f"Email from {company_analysis.get('company_name', 'Unknown')}")
+                    }
+                    
+                    # Update company_analysis with all required fields
+                    company_analysis.update(required_fields)
+                    
+                    print(f"🎯🎯🎯 FINAL DATA STRUCTURE FOR FRONTEND 🎯🎯🎯")
+                    print(f"   Relevancy Score: {company_analysis['relevancy_score']} (type: {type(company_analysis['relevancy_score'])})")
+                    print(f"   All Keys: {list(company_analysis.keys())}")
                     
                     return company_analysis
                 else:

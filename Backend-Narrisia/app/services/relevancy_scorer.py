@@ -122,7 +122,12 @@ IMPORTANT: Always return a valid number between 0-100 for relevancy_score.
             "relevancy_confidence": relevancy_confidence
         }
         
-        print(f"📦 Final result object: {final_result}")
+        print(f"📦📦📦 RETURNING RELEVANCY RESULT 📦📦📦")
+        print(f"   Score: {final_result['relevancy_score']} (type: {type(final_result['relevancy_score'])})")
+        print(f"   Explanation: {final_result['relevancy_explanation'][:50]}...")
+        print(f"   Confidence: {final_result['relevancy_confidence']}")
+        print(f"   Full object: {final_result}")
+        
         return final_result
 
     except json.JSONDecodeError as json_err:
