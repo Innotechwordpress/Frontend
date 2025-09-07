@@ -13,6 +13,7 @@ import Footer from "@/components/footer";
 import { TrendingUp, Users, Target, Zap, BarChart3, Calendar, Activity, ArrowRight, Brain, Rocket, Shield, Building, MoreVertical, X, Mail, Briefcase, FileText, Bot, User } from "lucide-react";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useProgressLoader } from "@/hooks/useProgressLoader";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Define API_BASE_URL here or import it if it's globally available
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""; // Example: Use environment variable
@@ -282,12 +283,12 @@ export default function Dashboard() {
       });
     } catch (error: any) {
       console.error("Error starting parsing:", error);
-      
+
       // Clear the progress interval on error
       if (progressInterval) {
         clearInterval(progressInterval);
       }
-      
+
       toast({
         title: "Parsing Failed",
         description: error.message || "Failed to start email parsing.",
@@ -517,16 +518,32 @@ export default function Dashboard() {
                                 <Badge variant="outline" className="border-green-400 text-green-400 text-xs">
                                   Credibility: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
                                 </Badge>
-                                <Badge variant="outline" className="border-purple-400 text-purple-400 text-xs">
-                                  Relevancy: {(() => {
-                                    console.log('Relevancy debug for', credibilityData?.company_name, ':', credibilityData?.relevancy_score, typeof credibilityData?.relevancy_score);
-                                    const score = credibilityData?.relevancy_score;
-                                    if (score !== undefined && score !== null && score !== 'N/A' && !isNaN(Number(score))) {
-                                      return `${Number(score).toFixed(1)}%`;
-                                    }
-                                    return 'N/A';
-                                  })()}
-                                </Badge>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className="border-purple-400 text-purple-400 text-xs cursor-help">
+                                        Relevancy: {(() => {
+                                          console.log('Relevancy debug for', credibilityData?.company_name, ':', credibilityData?.relevancy_score, typeof credibilityData?.relevancy_score);
+                                          const score = credibilityData?.relevancy_score;
+                                          if (score !== undefined && score !== null && score !== 'N/A' && !isNaN(Number(score))) {
+                                            return `${Number(score).toFixed(1)}%`;
+                                          }
+                                          return 'N/A';
+                                        })()}
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-gray-800 border border-gray-700 text-white p-2 rounded-md max-w-xs">
+                                      {credibilityData?.relevancy_reason ? (
+                                        <>
+                                          <h4 className="font-semibold mb-1">Relevancy Reason:</h4>
+                                          <p className="text-xs">{credibilityData.relevancy_reason}</p>
+                                        </>
+                                      ) : (
+                                        <p className="text-xs text-gray-400">No specific reason provided.</p>
+                                      )}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                                 <Badge variant="outline" className="border-blue-400 text-blue-400 text-xs">
                                   {credibilityData?.intent || credibilityData?.email_intent || 'Unknown Intent'}
                                 </Badge>
