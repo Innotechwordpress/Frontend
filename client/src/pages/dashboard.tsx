@@ -25,7 +25,7 @@ export default function Dashboard() {
     type: 'subject' | 'credibility' | 'intent_summary';
     data: any;
   } | null>(null);
-  const { progress, currentStep, isLoading: isProgressLoading, startProgress, resetProgress, completeProgress } = useProgressLoader();
+  const { progress, currentStep, isLoading: isProgressLoading, startDynamicProgress, resetProgress } = useProgressLoader();
 
   // Update time every minute for live greeting
   useEffect(() => {
@@ -182,53 +182,38 @@ export default function Dashboard() {
 
   // Function to handle email parsing with progress
   const handleParseEmails = async () => {
-    resetProgress(); // Reset progress before starting
-
-    // Estimate processing time based on current unread email count
     const emailCount = unreadCount || 1;
-    const baseTimePerEmail = 2000; // 2 seconds per email for AI processing
-    const estimatedProcessingTime = Math.max(15000, emailCount * baseTimePerEmail); // Minimum 15 seconds
 
-    // Define progress steps that scale with email count
+    // Define progress steps with relative weights (no fixed durations)
     const progressSteps = [
-      { id: 'connecting', label: 'Connecting to email server...', duration: 3000 },
-      { id: 'fetching', label: 'Fetching unread emails...', duration: 4000 },
-      { id: 'extracting', label: `Extracting company information from ${emailCount} emails...`, duration: Math.max(8000, emailCount * 200) },
-      { id: 'analyzing', label: 'Analyzing company credibility with OpenAI...', duration: estimatedProcessingTime * 0.4 },
-      { id: 'processing', label: 'Processing financial data and market analysis...', duration: estimatedProcessingTime * 0.3 },
-      { id: 'classifying', label: 'Classifying email intent and generating summaries...', duration: estimatedProcessingTime * 0.2 },
-      { id: 'finalizing', label: 'Finalizing analysis and loading data...', duration: estimatedProcessingTime * 0.1 }
+      { id: 'connecting', label: 'Connecting to email server...', weight: 1 },
+      { id: 'fetching', label: 'Fetching unread emails...', weight: 1 },
+      { id: 'extracting', label: `Extracting company information from ${emailCount} emails...`, weight: 2 },
+      { id: 'analyzing', label: 'Analyzing company credibility with OpenAI...', weight: 4 },
+      { id: 'processing', label: 'Processing financial data and market analysis...', weight: 3 },
+      { id: 'classifying', label: 'Classifying email intent and generating summaries...', weight: 2 },
+      { id: 'finalizing', label: 'Finalizing analysis and loading data...', weight: 1 }
     ];
 
     try {
-      // Start progress animation but DON'T let it complete automatically
-      let progressCompleted = false;
-      startProgress(progressSteps, () => {
-        if (!progressCompleted) {
-          console.log('Progress animation reached end, but waiting for API...');
-          // Don't actually complete yet - wait for API
+      // Start dynamic progress that responds to actual API call
+      const data = await startDynamicProgress(progressSteps, async () => {
+        const response = await fetch("/api/emails/start-parsing", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to process emails.");
         }
+
+        return response.json();
       });
 
-      // Start API call and wait for it to complete (this now waits for all processing)
-      const response = await fetch("/api/emails/start-parsing", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to process emails.");
-      }
-
-      const data = await response.json();
       console.log("API Response received:", data);
-
-      // NOW complete progress when API actually responds
-      progressCompleted = true;
-      completeProgress();
 
       // Update the state with processed data
       setUnreadEmails(data.emails || []);

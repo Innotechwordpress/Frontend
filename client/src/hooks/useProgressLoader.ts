@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 export interface ProgressStep {
   id: string;
   label: string;
-  duration: number; // in milliseconds
+  weight: number; // relative weight instead of duration
 }
 
 export const useProgressLoader = () => {
@@ -12,50 +12,71 @@ export const useProgressLoader = () => {
   const [currentStep, setCurrentStep] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const startProgress = useCallback(async (steps: ProgressStep[], onComplete?: () => void) => {
+  const startDynamicProgress = useCallback(async (steps: ProgressStep[], apiCall: () => Promise<any>) => {
     setIsLoading(true);
     setProgress(0);
     
-    const totalDuration = steps.reduce((sum, step) => sum + step.duration, 0);
-    let currentProgress = 0;
-    let elapsedTime = 0;
-
-    for (const step of steps) {
-      setCurrentStep(step.label);
+    const totalWeight = steps.reduce((sum, step) => sum + step.weight, 0);
+    let currentWeight = 0;
+    let stepIndex = 0;
+    
+    const startTime = Date.now();
+    
+    // Start the API call
+    const apiPromise = apiCall();
+    
+    // Animate progress while API is running
+    const animateProgress = () => {
+      const elapsed = Date.now() - startTime;
       
-      // Animate progress for this step
-      const startTime = Date.now();
-      const stepProgress = (step.duration / totalDuration) * 100;
+      // Update step based on elapsed time
+      const stepDuration = 2000; // 2 seconds per step
+      const targetStep = Math.min(Math.floor(elapsed / stepDuration), steps.length - 1);
       
-      const animateStep = () => {
-        const now = Date.now();
-        const stepElapsed = now - startTime;
+      if (targetStep > stepIndex) {
+        // Move to next step
+        currentWeight += steps[stepIndex].weight;
+        stepIndex = targetStep;
+      }
+      
+      if (stepIndex < steps.length) {
+        setCurrentStep(steps[stepIndex].label);
         
-        if (stepElapsed >= step.duration) {
-          currentProgress += stepProgress;
-          elapsedTime += step.duration;
-          setProgress(Math.min(currentProgress, 100));
-          return;
-        }
+        // Calculate progress within current step
+        const stepElapsed = elapsed - (stepIndex * stepDuration);
+        const stepProgress = Math.min(stepElapsed / stepDuration, 1);
+        const currentStepWeight = steps[stepIndex].weight * stepProgress;
         
-        const stepPercentage = (stepElapsed / step.duration) * stepProgress;
-        setProgress(Math.min(currentProgress + stepPercentage, 100));
-        
-        requestAnimationFrame(animateStep);
-      };
+        const totalProgress = (currentWeight + currentStepWeight) / totalWeight * 98; // Cap at 98%
+        setProgress(Math.min(totalProgress, 98));
+      }
       
-      animateStep();
+      // Continue animation if API hasn't responded yet
+      if (apiPromise) {
+        requestAnimationFrame(animateProgress);
+      }
+    };
+    
+    // Start progress animation
+    animateProgress();
+    
+    try {
+      // Wait for API to complete
+      const result = await apiPromise;
       
-      // Wait for step to complete
-      await new Promise(resolve => setTimeout(resolve, step.duration));
-      currentProgress += stepProgress;
+      // Complete progress
+      setProgress(100);
+      setCurrentStep('Processing complete! Loading results...');
+      
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
+      
+      return result;
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
     }
-    
-    // Don't auto-complete at 100%, wait for manual completion
-    setProgress(Math.min(currentProgress, 99));
-    
-    // Call onComplete but don't end loading automatically
-    onComplete?.();
   }, []);
 
   const resetProgress = useCallback(() => {
@@ -64,20 +85,11 @@ export const useProgressLoader = () => {
     setIsLoading(false);
   }, []);
 
-  const completeProgress = useCallback(() => {
-    setProgress(100);
-    setCurrentStep('Processing complete! Loading results...');
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000); // Show completion message briefly
-  }, []);
-
   return {
     progress,
     currentStep,
     isLoading,
-    startProgress,
+    startDynamicProgress,
     resetProgress,
-    completeProgress,
   };
 };
