@@ -532,7 +532,7 @@ async def analyze_company_with_relevancy(company_name, email, domain_context, op
         return None
 
 
-async def process_emails_with_context(emails: list, domain_context: str = "") -> list:
+async def process_emails_with_context(emails: list, domain_context: str = "", oauth_token: str = "") -> list:
     """Process emails with domain relevancy scoring"""
     from app.services.relevancy_scorer import calculate_relevancy_score
     from app.core.config import settings
@@ -549,7 +549,7 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
             logger.info(f"✅ Company found from email content: {company_name}")
 
             # Get basic company analysis using the working function
-            company_analysis = await process_single_email(email, settings, oauth_token or "")
+            company_analysis = await process_single_email(email, settings, oauth_token)
 
             if company_analysis:
                 print(f"✅ BASIC ANALYSIS COMPLETE for {company_name}")
@@ -786,7 +786,7 @@ async def start_parsing(request: Request):
         print(f"   - Emails to process: {len(raw_emails)}")
         print(f"   - Domain context: '{domain_context[:50]}{'...' if len(domain_context) > 50 else ''}'")
         
-        processed_results = await process_emails_with_context(raw_emails, domain_context)
+        processed_results = await process_emails_with_context(raw_emails, domain_context, oauth_token)
 
         # Ensure we have results before proceeding
         if not processed_results:
