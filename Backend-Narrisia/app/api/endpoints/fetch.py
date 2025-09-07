@@ -528,6 +528,7 @@ async def analyze_company_with_relevancy(company_name, email, domain_context, op
 
 async def process_emails_with_context(emails: list, domain_context: str = "") -> list:
     """Process emails with domain relevancy scoring"""
+    from app.services.relevancy_scorer import calculate_relevancy_score
 
     async def process_single_email_with_context(email):
         try:
@@ -537,7 +538,7 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
             company_name = await extract_company_name(email)
             logger.info(f"✅ Company found from email content: {company_name}")
 
-            # Analyze with OpenAI including domain relevancy
+            # Get basic company analysis first
             company_analysis = await analyze_company_with_relevancy(
                 company_name,
                 email,
@@ -548,16 +549,26 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
             if company_analysis:
                 logger.info(f"✅ Successfully analyzed email from {company_name}")
 
-                # Add email details to the analysis
+                # Calculate relevancy score using the dedicated service
+                relevancy_result = await calculate_relevancy_score(
+                    email_content=email,
+                    company_info=company_name,
+                    domain_context=domain_context,
+                    openai_api_key=os.getenv("OPENAI_API_KEY")
+                )
+
+                # Add email details and relevancy score to the analysis
                 company_analysis.update({
                     'sender': email.get('sender', 'Unknown'),
                     'subject': email.get('subject', 'No Subject'),
                     'body': email.get('body', email.get('snippet', '')),
-                    'sender_domain': email.get('sender', '').split('@')[-1].split('>')[0] if '@' in email.get('sender', '') else ''
+                    'sender_domain': email.get('sender', '').split('@')[-1].split('>')[0] if '@' in email.get('sender', '') else '',
+                    'relevancy_score': relevancy_result.get('relevancy_score', 0) / 100.0,  # Convert to 0-1 scale
+                    'relevancy_explanation': relevancy_result.get('relevancy_explanation', ''),
+                    'relevancy_confidence': relevancy_result.get('relevancy_confidence', 0.0)
                 })
-                
-                # Add relevancy score to the overall structure
-                company_analysis['relevancy_score'] = company_analysis.get('relevancy_score', 0.0)
+
+                logger.info(f"✅ Relevancy score calculated: {relevancy_result.get('relevancy_score', 0)}%")
                 
                 return company_analysis
             else:
