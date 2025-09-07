@@ -664,11 +664,19 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
     print(f"🚀🚀🚀 STARTING EMAIL PROCESSING WITH CONTEXT 🚀🚀🚀")
     print(f"📧 Processing {len(emails)} emails")
     print(f"🎯 Domain context: '{domain_context[:100]}{'...' if len(domain_context) > 100 else ''}'")
+    print(f"🔑 OAuth token: {'PRESENT' if oauth_token else 'MISSING'}")
     logger.info(f"🚀 Starting to process {len(emails)} emails with context: '{domain_context[:50]}...'")
+    
+    if not domain_context or not domain_context.strip():
+        print(f"⚠️⚠️⚠️ DOMAIN CONTEXT IS EMPTY - RELEVANCY WILL BE 50%")
+    else:
+        print(f"✅ DOMAIN CONTEXT PROVIDED: {len(domain_context)} characters")
     
     # Process all emails concurrently
     tasks = [process_single_email_with_context(email) for email in emails]
+    print(f"🔄 Created {len(tasks)} processing tasks")
     results = await asyncio.gather(*tasks, return_exceptions=True)
+    print(f"🔄 Completed asyncio.gather, got {len(results)} results")
 
     # Filter out None results and exceptions
     valid_results = []
@@ -776,12 +784,20 @@ async def start_parsing(request: Request):
     try:
         request_body = await request.json()
         domain_context = request_body.get('domain_context', '') if request_body else ''
-    except:
+    except Exception as e:
+        print(f"❌ Failed to parse request body: {e}")
         domain_context = ''
 
     print(f"🚀🚀🚀 START-PARSING ENDPOINT CALLED 🚀🚀🚀")
     print(f"🎯 Domain context received: '{domain_context[:100]}{'...' if len(domain_context) > 100 else ''}'")
+    print(f"🔑 OAuth token present: {bool(oauth_token)}")
     logger.info(f"🎯 Starting email parsing with domain context: '{domain_context[:50]}{'...' if len(domain_context) > 50 else ''}'")
+
+    if not domain_context or not domain_context.strip():
+        print("⚠️⚠️⚠️ NO DOMAIN CONTEXT PROVIDED - RELEVANCY WILL BE N/A")
+        logger.warning("⚠️ No domain context provided - relevancy scores will be N/A")
+    else:
+        print(f"✅ Domain context is valid: {len(domain_context)} characters")
 
     try:
         # Fetch emails first
@@ -805,7 +821,9 @@ async def start_parsing(request: Request):
         print(f"🔥🔥🔥 CALLING process_emails_with_context() 🔥🔥🔥")
         print(f"   - Emails to process: {len(raw_emails)}")
         print(f"   - Domain context: '{domain_context[:50]}{'...' if len(domain_context) > 50 else ''}'")
+        print(f"   - OAuth token: {'PRESENT' if oauth_token else 'MISSING'}")
         
+        # Force call the relevancy-aware function
         processed_results = await process_emails_with_context(raw_emails, domain_context, oauth_token)
 
         # Ensure we have results before proceeding
@@ -819,7 +837,7 @@ async def start_parsing(request: Request):
             relevancy = result.get('relevancy_score', 'N/A')
             credibility = result.get('credibility_score', 'N/A')
             company = result.get('company_name', 'Unknown')
-            print(f"   - Result {i+1}: {company} - Credibility: {credibility}, Relevancy: {relevancy}")
+            print(f"   - Result {i+1}: {company} - Credibility: {credibility}, Relevancy: {relevancy}%")
 
         logging.info(f"✅ AI analysis completed for {len(processed_results)} emails")
         logging.info("🎯 ALL PROCESSING COMPLETE! Returning results to frontend.")
