@@ -610,6 +610,7 @@ async function registerRoutes(app2) {
         return res.status(404).json({ message: "User not found" });
       }
       console.log("Starting email parsing and credibility analysis for user:", user.email);
+      console.log("Request body:", req.body);
       const accessToken = req.session.accessToken;
       if (!accessToken) {
         console.log("No OAuth token found in session for parsing request");
@@ -617,20 +618,25 @@ async function registerRoutes(app2) {
           message: "OAuth token required. Please reconnect your Google account."
         });
       }
+      const domainContext = req.body?.domain_context || "";
+      console.log("Domain context received:", domainContext);
       try {
         const fastApiResponse = await fetch(
-          "http://localhost:5000/fetch/processed",
+          "http://localhost:5000/fetch/start-parsing",
           {
-            method: "GET",
+            method: "POST",
             headers: {
               "Content-Type": "application/json",
               "oauth-token": accessToken
-            }
+            },
+            body: JSON.stringify({
+              domain_context: domainContext
+            })
           }
         );
         if (fastApiResponse.ok) {
           const processedData = await fastApiResponse.json();
-          console.log("Successfully fetched processed emails and credibility from FastAPI:", processedData);
+          console.log("Successfully fetched processed emails with relevancy from FastAPI:", processedData);
           const emails = processedData.emails || [];
           const credibilityAnalysis = processedData.credibility_analysis || [];
           return res.json({
