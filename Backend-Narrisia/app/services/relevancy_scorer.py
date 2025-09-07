@@ -8,8 +8,14 @@ import httpx
 async def calculate_relevancy_score(email_content: dict, company_info: str, domain_context: str, openai_api_key: str, model: str = "gpt-4o-mini") -> dict:
     """Calculate how relevant an email is to the user's business domain"""
     
+    print(f"🔍🔍🔍 RELEVANCY SCORER INPUT CHECK 🔍🔍🔍")
+    print(f"   Domain context received: '{domain_context}'")
+    print(f"   Domain context length: {len(domain_context) if domain_context else 0}")
+    print(f"   Domain context type: {type(domain_context)}")
+    print(f"   Domain context stripped: '{domain_context.strip() if domain_context else 'EMPTY'}'")
+    
     if not domain_context or not domain_context.strip():
-        print("⚠️ No domain context provided for relevancy calculation")
+        print("⚠️⚠️⚠️ NO DOMAIN CONTEXT PROVIDED FOR RELEVANCY CALCULATION ⚠️⚠️⚠️")
         return {
             "relevancy_score": 50.0,
             "relevancy_explanation": "No domain context provided",

@@ -781,12 +781,16 @@ async def start_parsing(request: Request):
         raise HTTPException(status_code=401, detail="OAuth token required")
 
     # Extract domain context from request body
+    domain_context = ''
     try:
         request_body = await request.json()
-        domain_context = request_body.get('domain_context', '') if request_body else ''
+        domain_context = request_body.get('domain_context', '').strip() if request_body else ''
+        print(f"🔍 Raw request body: {request_body}")
+        print(f"🔍 Extracted domain_context: '{domain_context}'")
     except Exception as e:
         print(f"❌ Failed to parse request body: {e}")
-        domain_context = ''
+        # Try to get from query params as fallback
+        domain_context = request.query_params.get('domain_context', '').strip()
 
     print(f"🚀🚀🚀 START-PARSING ENDPOINT CALLED 🚀🚀🚀")
     print(f"🎯 Domain context received: '{domain_context[:100]}{'...' if len(domain_context) > 100 else ''}'")

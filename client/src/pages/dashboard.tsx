@@ -14,6 +14,9 @@ import { TrendingUp, Users, Target, Zap, BarChart3, Calendar, Activity, ArrowRig
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { useProgressLoader } from "@/hooks/useProgressLoader";
 
+// Define API_BASE_URL here or import it if it's globally available
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""; // Example: Use environment variable
+
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
@@ -29,6 +32,10 @@ export default function Dashboard() {
   const [domainContext, setDomainContext] = useState("");
   const [canStartParsing, setCanStartParsing] = useState(false);
   const { progress, currentStep, isLoading: isProgressLoading, startDynamicProgress, resetProgress } = useProgressLoader();
+  const [isParsingStarted, setIsParsingStarted] = useState(false);
+  const [isProcessingEmails, setIsProcessingEmails] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState('');
+  const [accessToken, setAccessToken] = useState<string | null>(null); // State to store access token
 
   // Update time every minute for live greeting
   useEffect(() => {
@@ -42,6 +49,21 @@ export default function Dashboard() {
   // Fetch unread emails when the component mounts or user changes
   useEffect(() => {
     if (user) {
+      // Fetch access token
+      fetch("/api/auth/get-token")
+        .then((res) => res.json())
+        .then((data) => {
+          setAccessToken(data.accessToken);
+        })
+        .catch((error) => {
+          console.error("Error fetching access token:", error);
+          toast({
+            title: "Error",
+            description: "Failed to retrieve authentication token.",
+            variant: "destructive",
+          });
+        });
+
       // Fetch unread emails
       fetch("/api/emails/unread")
         .then((res) => res.json())
@@ -204,26 +226,33 @@ export default function Dashboard() {
     ];
 
     try {
-      // Start dynamic progress that responds to actual API call
-      const data = await startDynamicProgress(progressSteps, async () => {
-        const response = await fetch("/api/emails/start-parsing", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            domain_context: domainContext.trim()
-          }),
-        });
+      // Add debugging logs for domain context and request payload
+      console.log('🚀 STARTING PARSING WITH CONTEXT:', domainContext);
+      console.log('🚀 Domain context length:', domainContext.length);
+      console.log('🚀 Request payload:', { domain_context: domainContext });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to process emails.");
-        }
+      setIsParsingStarted(true);
+      setIsProcessingEmails(true);
+      setProcessingStatus('Starting AI analysis...');
 
-        return response.json();
+      const response = await fetch("/api/emails/start-parsing", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Add authorization header if you have an access token
+          // 'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          domain_context: domainContext.trim()
+        }),
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to process emails.");
+      }
+
+      const data = await response.json();
       console.log("API Response received:", data);
 
       // Update the state with processed data
@@ -243,6 +272,9 @@ export default function Dashboard() {
         variant: "destructive",
       });
       resetProgress(); // Reset progress on error
+      setIsParsingStarted(false);
+      setIsProcessingEmails(false);
+      setProcessingStatus('');
     }
   };
 
