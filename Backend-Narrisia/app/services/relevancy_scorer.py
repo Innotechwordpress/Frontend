@@ -115,8 +115,9 @@ IMPORTANT: Always return a valid number between 0-100 for relevancy_score.
         print(f"💡 Explanation: {relevancy_explanation[:100]}...")
         print(f"🎯 Confidence: {relevancy_confidence}")
         
+        # Return as percentage (0-100 scale)
         final_result = {
-            "relevancy_score": relevancy_score,
+            "relevancy_score": float(relevancy_score),  # Ensure it's a float percentage
             "relevancy_explanation": relevancy_explanation,
             "relevancy_confidence": relevancy_confidence
         }

@@ -549,7 +549,7 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
             logger.info(f"✅ Company found from email content: {company_name}")
 
             # Get basic company analysis using the working function
-            company_analysis = await process_single_email(email, settings, "")
+            company_analysis = await process_single_email(email, settings, oauth_token or "")
 
             if company_analysis:
                 print(f"✅ BASIC ANALYSIS COMPLETE for {company_name}")
@@ -759,6 +759,8 @@ async def start_parsing(request: Request):
     except:
         domain_context = ''
 
+    print(f"🚀🚀🚀 START-PARSING ENDPOINT CALLED 🚀🚀🚀")
+    print(f"🎯 Domain context received: '{domain_context[:100]}{'...' if len(domain_context) > 100 else ''}'")
     logger.info(f"🎯 Starting email parsing with domain context: '{domain_context[:50]}{'...' if len(domain_context) > 50 else ''}'")
 
     try:
@@ -775,16 +777,29 @@ async def start_parsing(request: Request):
                 "message": "No emails found"
             }
 
+        print(f"📧📧📧 EMAILS FETCHED: {len(raw_emails)} emails")
         logging.info(f"📧 Found {len(raw_emails)} emails, starting AI analysis...")
 
-        # CRITICAL: Wait for ALL AI processing to complete before responding
-        logging.info("⏳ Starting AI processing - this will take approximately 1-2 minutes...")
+        # CRITICAL: Use the context-aware processing function
+        logging.info("⏳ Starting AI processing with relevancy scoring - this will take approximately 1-2 minutes...")
+        print(f"🔥🔥🔥 CALLING process_emails_with_context() 🔥🔥🔥")
+        print(f"   - Emails to process: {len(raw_emails)}")
+        print(f"   - Domain context: '{domain_context[:50]}{'...' if len(domain_context) > 50 else ''}'")
+        
         processed_results = await process_emails_with_context(raw_emails, domain_context)
 
         # Ensure we have results before proceeding
         if not processed_results:
             logging.warning("⚠️ No processed results returned from AI analysis")
             processed_results = []
+
+        print(f"✅✅✅ AI PROCESSING COMPLETE! ✅✅✅")
+        print(f"   - Processed {len(processed_results)} emails")
+        for i, result in enumerate(processed_results[:3]):  # Show first 3
+            relevancy = result.get('relevancy_score', 'N/A')
+            credibility = result.get('credibility_score', 'N/A')
+            company = result.get('company_name', 'Unknown')
+            print(f"   - Result {i+1}: {company} - Credibility: {credibility}, Relevancy: {relevancy}")
 
         logging.info(f"✅ AI analysis completed for {len(processed_results)} emails")
         logging.info("🎯 ALL PROCESSING COMPLETE! Returning results to frontend.")
@@ -794,10 +809,13 @@ async def start_parsing(request: Request):
             "emails": raw_emails,
             "count": len(raw_emails),
             "credibility_analysis": processed_results,
-            "message": f"Successfully processed {len(raw_emails)} emails with complete AI analysis",
+            "message": f"Successfully processed {len(raw_emails)} emails with complete AI analysis including relevancy scoring",
             "processing_complete": True
         }
 
     except Exception as e:
+        print(f"❌❌❌ ERROR IN START-PARSING: {str(e)}")
         logging.error(f"❌ Error in start-parsing: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to process emails: {str(e)}")
