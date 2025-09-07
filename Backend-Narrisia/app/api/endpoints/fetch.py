@@ -18,6 +18,11 @@ import json # Import json for parsing API responses
 
 router = APIRouter()
 
+# Placeholder for logger if not already defined
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO)
+
 async def process_single_email(email, settings, oauth_token):
     """Process a single email for company details, intent, and summary."""
     try:
@@ -415,26 +420,195 @@ async def get_processed_emails(
         logging.error(f"Error processing emails: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process emails: {str(e)}")
 
-@router.post("/start-parsing")
-async def start_parsing_emails(
-    oauth_token: str = Header(..., alias="oauth-token")
-):
+# Helper function to extract company name
+async def extract_company_name(email):
+    sender = email.get("sender", "")
+    subject = email.get("subject", "")
+    body = email.get("body", "") or email.get("snippet", "")
+    from app.utils.extract import extract_company_name_from_email_content
+    company_result = extract_company_name_from_email_content(
+        sender=sender, subject=subject, body=body, email_data=email
+    )
+    return company_result["company_name"]
+
+# Helper function to analyze company with relevancy scoring
+async def analyze_company_with_relevancy(company_name, email, domain_context, openai_api_key):
+    """Analyze company details and calculate relevancy score using OpenAI."""
+    from openai import AsyncOpenAI
+    import httpx
+
+    client = AsyncOpenAI(api_key=openai_api_key, http_client=httpx.AsyncClient(timeout=15.0))
+
+    sender = email.get("sender", "")
+    subject = email.get("subject", "")
+    body = email.get("body", "") or email.get("snippet", "")
+
+    # Construct prompt for OpenAI, including domain context for relevancy scoring
+    prompt = f"""
+    Analyze the following email and company information. Provide a JSON output that includes company analysis and a relevancy score based on the provided domain context.
+
+    Domain Context: "{domain_context}"
+
+    Company: {company_name}
+    Email from: {sender}
+    Subject: {subject}
+    Body: {body[:1000]}
+
+    Return ONLY valid JSON in this exact format:
+    {{
+      "company_analysis": {{
+        "company_name": "{company_name}",
+        "industry": "Technology",
+        "credibility_score": 85,
+        "employee_count": 1000,
+        "founded_year": 2010,
+        "business_verified": true,
+        "market_cap": 1500000000,
+        "revenue": 250000000,
+        "funding_status": "Series B"
+      }},
+      "email_intent": "job_application",
+      "email_summary": "Brief email summary",
+      "company_gist": "Write a detailed, specific summary about what this company actually does, their main products/services, their market position, and key business focus. Be specific and accurate - do not use generic templates.",
+      "intent_confidence": 0.9,
+      "relevancy_score": 0.0
+    }}
+
+    Instructions for Relevancy Score:
+    - Score should be between 0.0 and 1.0.
+    - 1.0 means highly relevant to the domain context, 0.0 means not relevant.
+    - Consider the company's industry, products, services, and target market in relation to the domain context.
+    - If the domain context is not provided or is empty, the relevancy score should be 0.0.
     """
-    Start parsing and processing emails with AI analysis.
-    This endpoint processes emails and returns complete analysis ONLY after all processing is done.
-    """
+
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o", # Or another suitable model
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=500
+        )
+        raw_text = response.choices[0].message.content.strip()
+
+        if raw_text.startswith("```json"):
+            raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+        elif raw_text.startswith("```"):
+            raw_text = raw_text.replace("```", "").strip()
+
+        result_data = json.loads(raw_text)
+
+        # Fallback for credibility score if not present or too low
+        company_analysis = result_data.get("company_analysis", {})
+        if not company_analysis.get("credibility_score") or company_analysis.get("credibility_score") < 30:
+            if company_name.lower() in ["indeed", "stripe", "google", "microsoft", "amazon", "linkedin"]:
+                company_analysis["credibility_score"] = 95
+            elif company_name.lower() in ["internshala", "naukri", "krish technolabs", "2coms"]:
+                company_analysis["credibility_score"] = 75
+            else:
+                company_analysis["credibility_score"] = 65
+            result_data["company_analysis"] = company_analysis
+        
+        # Ensure relevancy score is handled if empty or invalid
+        if "relevancy_score" not in result_data or not isinstance(result_data["relevancy_score"], (int, float)):
+            result_data["relevancy_score"] = 0.0
+        else:
+            # Ensure score is within bounds [0.0, 1.0]
+            result_data["relevancy_score"] = max(0.0, min(1.0, result_data["relevancy_score"]))
+
+        return result_data
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse OpenAI response for {company_name}: {e}")
+        logger.error(f"Raw response: {raw_text[:200]}...")
+        return None
+    except Exception as e:
+        logger.error(f"Error analyzing company with OpenAI: {e}")
+        return None
+
+
+async def process_emails_with_context(emails: list, domain_context: str = "") -> list:
+    """Process emails with domain relevancy scoring"""
+
+    async def process_single_email_with_context(email):
+        try:
+            logger.info(f"📧 Processing: {email.get('sender', 'Unknown')}...")
+
+            # Extract company information
+            company_name = await extract_company_name(email)
+            logger.info(f"✅ Company found from email content: {company_name}")
+
+            # Analyze with OpenAI including domain relevancy
+            company_analysis = await analyze_company_with_relevancy(
+                company_name,
+                email,
+                domain_context,
+                os.getenv("OPENAI_API_KEY")
+            )
+
+            if company_analysis:
+                logger.info(f"✅ Successfully analyzed email from {company_name}")
+
+                # Add email details to the analysis
+                company_analysis.update({
+                    'sender': email.get('sender', 'Unknown'),
+                    'subject': email.get('subject', 'No Subject'),
+                    'body': email.get('body', email.get('snippet', '')),
+                    'sender_domain': email.get('sender', '').split('@')[-1].split('>')[0] if '@' in email.get('sender', '') else ''
+                })
+                
+                # Add relevancy score to the overall structure
+                company_analysis['relevancy_score'] = company_analysis.get('relevancy_score', 0.0)
+                
+                return company_analysis
+            else:
+                logger.error(f"❌ Failed to analyze: {company_name}")
+                return None
+
+        except Exception as e:
+            logger.error(f"❌ Failed to process email: {str(e)}")
+            return None
+
+    # Process all emails concurrently
+    tasks = [process_single_email_with_context(email) for email in emails]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Filter out None results and exceptions
+    valid_results = [result for result in results if result is not None and not isinstance(result, Exception)]
+
+    return valid_results
+
+
+@router.post("/start-parsing", response_model=Dict)
+async def start_parsing(request_data: Dict = None):
+    """Start parsing emails with comprehensive analysis and relevancy scoring"""
+    # Extract OAuth token from Authorization header or oauth-token header
+    oauth_token = None
+    request_obj = Request(scope={"type": "http", "headers": request_data.get("headers", {}).items()}) # Mock request object
+
+    auth_header = request_obj.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        oauth_token = auth_header.split("Bearer ")[1]
+
+    if not oauth_token:
+        oauth_token = request_obj.headers.get("oauth-token")
+
     if not oauth_token:
         raise HTTPException(status_code=401, detail="OAuth token required")
 
-    try:
-        logging.info("🚀 Starting comprehensive email parsing and analysis")
+    # Extract domain context from request body
+    domain_context = ""
+    if request_data and isinstance(request_data, dict):
+        domain_context = request_data.get('domain_context', '')
 
+    logger.info(f"🎯 Starting email parsing with domain context: '{domain_context[:50]}{'...' if len(domain_context) > 50 else ''}'")
+
+    try:
         # Fetch emails first
         gmail_service = GmailOAuthService(access_token=oauth_token)
         raw_emails = await gmail_service.fetch_unread_emails()
 
         if not raw_emails:
-            logging.info("📭 No emails found to process")
+            logger.info("📭 No emails found to process")
             return {
                 "emails": [],
                 "count": 0,
@@ -446,7 +620,7 @@ async def start_parsing_emails(
 
         # CRITICAL: Wait for ALL AI processing to complete before responding
         logging.info("⏳ Starting AI processing - this will take approximately 1-2 minutes...")
-        processed_results = await trigger_auto_processing(raw_emails, oauth_token)
+        processed_results = await process_emails_with_context(raw_emails, domain_context)
 
         # Ensure we have results before proceeding
         if not processed_results:
@@ -466,5 +640,5 @@ async def start_parsing_emails(
         }
 
     except Exception as e:
-        logging.error(f"❌ Error in start-parsing: {e}")
+        logger.error(f"❌ Error in start-parsing: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process emails: {str(e)}")

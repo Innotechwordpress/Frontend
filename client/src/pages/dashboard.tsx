@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -25,6 +26,8 @@ export default function Dashboard() {
     type: 'subject' | 'credibility' | 'intent_summary';
     data: any;
   } | null>(null);
+  const [domainContext, setDomainContext] = useState("");
+  const [canStartParsing, setCanStartParsing] = useState(false);
   const { progress, currentStep, isLoading: isProgressLoading, startDynamicProgress, resetProgress } = useProgressLoader();
 
   // Update time every minute for live greeting
@@ -73,6 +76,11 @@ export default function Dashboard() {
         });
     }
   }, [user, toast]);
+
+  // Monitor domain context input to enable/disable parsing
+  useEffect(() => {
+    setCanStartParsing(domainContext.trim().length > 0);
+  }, [domainContext]);
 
   if (isAuthLoading) {
     return (
@@ -203,6 +211,9 @@ export default function Dashboard() {
           headers: {
             "Content-Type": "application/json",
           },
+          body: JSON.stringify({
+            domain_context: domainContext.trim()
+          }),
         });
 
         if (!response.ok) {
@@ -308,6 +319,53 @@ export default function Dashboard() {
         )}
 
 
+        {/* Domain Relevancy Input Section */}
+        <div className="mb-8">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-blue-400 flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Domain Relevancy Configuration
+              </CardTitle>
+              <CardDescription>
+                Define your business context to get relevancy scores for incoming emails
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="domainContext" className="text-white font-medium">
+                    Business Context
+                  </Label>
+                  <textarea
+                    id="domainContext"
+                    value={domainContext}
+                    onChange={(e) => setDomainContext(e.target.value)}
+                    className="w-full min-h-[100px] px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+                    placeholder="Example: I am a CEO of a plastic packaging industry focused on sustainable solutions for food and beverage companies. I'm interested in partnerships, technology innovations, and business expansion opportunities."
+                  />
+                  <p className="text-sm text-gray-400">
+                    Describe your role, industry, and interests. This helps the AI calculate how relevant each email is to your business.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {canStartParsing ? (
+                    <div className="flex items-center gap-2 text-green-400">
+                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                      <span className="text-sm">Ready to parse with relevancy scoring</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-orange-400">
+                      <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                      <span className="text-sm">Please provide business context to enable parsing</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Email Research & Classification Section */}
         <div className="mb-8">
           <Card className="bg-gray-900 border-gray-800">
@@ -317,19 +375,28 @@ export default function Dashboard() {
                 Email Company Research & Classification
               </CardTitle>
               <CardDescription>
-                AI-powered email analysis and company intelligence
+                AI-powered email analysis and company intelligence with domain relevancy scoring
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <Button
-                  className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-md flex items-center gap-2"
+                  className={`px-6 py-2 rounded-md flex items-center gap-2 ${
+                    canStartParsing 
+                      ? "bg-red-500 hover:bg-red-600 text-white" 
+                      : "bg-gray-600 cursor-not-allowed text-gray-400"
+                  }`}
                   onClick={handleParseEmails}
-                  disabled={isProgressLoading}
+                  disabled={isProgressLoading || !canStartParsing}
                 >
                   <Zap className="w-4 h-4" />
                   Start Parsing
                 </Button>
+                {!canStartParsing && (
+                  <p className="text-sm text-gray-400">
+                    Please provide your business context above to enable email parsing with relevancy scoring.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -395,7 +462,10 @@ export default function Dashboard() {
                               </p>
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="outline" className="border-green-400 text-green-400 text-xs">
-                                  Score: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
+                                  Credibility: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
+                                </Badge>
+                                <Badge variant="outline" className="border-purple-400 text-purple-400 text-xs">
+                                  Relevancy: {credibilityData?.relevancy_score?.toFixed(1) || 'N/A'}%
                                 </Badge>
                                 <Badge variant="outline" className="border-blue-400 text-blue-400 text-xs">
                                   {credibilityData?.intent || credibilityData?.email_intent || 'Unknown Intent'}
