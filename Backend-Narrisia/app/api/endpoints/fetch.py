@@ -89,26 +89,27 @@ async def process_single_email(email, settings, oauth_token=""):
         - Medium companies: market_cap: 100000000-5000000000, credibility: 75-85
         - Small/Personal: market_cap: 10000000-100000000, credibility: 60-75
 
-        Return ONLY valid JSON in this exact format:
+        Return ONLY this JSON structure with email_summary based on ACTUAL email content:
         {{
-          "company_analysis": {{
-            "company_name": "{company_name}",
-            "industry": "Technology",
-            "credibility_score": 75,
-            "employee_count": 500,
-            "founded_year": 2015,
-            "business_verified": true,
-            "market_cap": 500000000,
-            "revenue": 75000000,
-            "funding_status": "Private"
-          }},
-          "email_intent": "business_inquiry",
-          "email_summary": "WRITE EXACTLY WHAT THIS EMAIL IS ABOUT BASED ON THE ACTUAL CONTENT ABOVE",
-          "company_gist": "Brief description of what {company_name} does",
-          "intent_confidence": 0.8
+            "company_analysis": {{
+                "company_name": "{company_name}",
+                "industry": "<industry based on email content and company>",
+                "credibility_score": <0-100 realistic score>,
+                "employee_count": <realistic estimate>,
+                "founded_year": <realistic year>,
+                "business_verified": <true/false>,
+                "market_cap": <realistic number or 0>,
+                "revenue": <realistic number or 0>,
+                "funding_status": "<bootstrapped/seed/series_a/etc>",
+                "is_personal_email": {is_personal_email}
+            }},
+            "email_intent": "<intent based on ACTUAL email content>",
+            "email_summary": "<Summary based on ACTUAL email subject and body - describe what the email actually says, not a generic template>",
+            "company_gist": "<brief description of company>",
+            "intent_confidence": <0.0-1.0>
         }}
 
-        MANDATORY: The email_summary MUST match the actual email content, not generic templates.
+        IMPORTANT: The email_summary MUST reflect the actual content of this specific email. Read the subject "{subject}" and body content carefully.
         """
 
         response = await client.chat.completions.create(
