@@ -58,49 +58,49 @@ async def process_single_email(email, settings, oauth_token=""):
         prompt = f"""
         You are a business analyst. Analyze the email below and provide a comprehensive JSON response with realistic estimates.
 
-        Company: {company_name}
-        Email from: {sender}
+        ACTUAL EMAIL TO ANALYZE:
+        From: {sender}
         Subject: {subject}
-        Email Body: {body[:1000]}
+        Body: {body[:1500]}
 
-        CRITICAL INSTRUCTIONS:
-        1. The email_summary MUST accurately reflect the ACTUAL email content above - do not make up content
-        2. Base the company analysis on the ACTUAL company name: {company_name}
-        3. Provide realistic estimates for ALL financial fields. Never use "N/A", "Unknown", null, or 0
+        Company extracted from sender: {company_name}
 
-        Guidelines for estimates:
-        - Large tech companies (Google, Microsoft, Apple, Indeed, Stripe): market_cap: 50000000000-500000000000, funding_status: "Public"
-        - Medium companies (Internshala, Naukri, Krish Technolabs): market_cap: 100000000-5000000000, funding_status: "Series B/C" or "Private"  
-        - Small companies/startups: market_cap: 10000000-100000000, funding_status: "Series A/Seed" or "Bootstrap"
-        - Revenue should be 10-20% of market cap typically
+        CRITICAL INSTRUCTIONS FOR EMAIL_SUMMARY:
+        1. Read the ACTUAL email content above carefully
+        2. The email_summary must describe EXACTLY what this specific email says
+        3. DO NOT make up content or use generic descriptions
+        4. If the email is about repair scheduling, say "repair scheduling"
+        5. If the email is about food delivery survey, say "food delivery survey" 
+        6. If the email is about job applications, say "job application"
+        7. NEVER use generic phrases like "acknowledging purchase order" unless that's actually in the email
 
-        For credibility scores: Well-known companies (90-95), Medium companies (75-85), Small companies (60-75).
+        EXAMPLE - If email says "repair scheduled for 20-09-2025", then email_summary should be "Confirmation of repair and maintenance scheduling for assembly line on 20-09-2025"
 
-        CRITICAL: 
-        - The email_summary must describe what THIS SPECIFIC email is about, not generic company information
-        - Use the ACTUAL company name ({company_name}) in your analysis, not a different company
-        - Write accurate company summary based on what you know about {company_name}
+        For company analysis, use realistic estimates based on {company_name}:
+        - Large tech companies: market_cap: 50000000000-500000000000, credibility: 90-95
+        - Medium companies: market_cap: 100000000-5000000000, credibility: 75-85
+        - Small/Personal: market_cap: 10000000-100000000, credibility: 60-75
 
         Return ONLY valid JSON in this exact format:
         {{
           "company_analysis": {{
             "company_name": "{company_name}",
             "industry": "Technology",
-            "credibility_score": 85,
-            "employee_count": 1000,
-            "founded_year": 2010,
+            "credibility_score": 75,
+            "employee_count": 500,
+            "founded_year": 2015,
             "business_verified": true,
-            "market_cap": 1500000000,
-            "revenue": 250000000,
-            "funding_status": "Series B"
+            "market_cap": 500000000,
+            "revenue": 75000000,
+            "funding_status": "Private"
           }},
           "email_intent": "business_inquiry",
-          "email_summary": "Summarize what THIS SPECIFIC email is about based on the subject and body content above",
-          "company_gist": "Write a detailed, specific summary about what {company_name} actually does, their main products/services, market position, and key business focus. Be accurate for {company_name}.",
-          "intent_confidence": 0.9
+          "email_summary": "WRITE EXACTLY WHAT THIS EMAIL IS ABOUT BASED ON THE ACTUAL CONTENT ABOVE",
+          "company_gist": "Brief description of what {company_name} does",
+          "intent_confidence": 0.8
         }}
 
-        MANDATORY: Provide realistic numerical estimates and ensure email_summary matches the actual email content.
+        MANDATORY: The email_summary MUST match the actual email content, not generic templates.
         """
 
         response = await client.chat.completions.create(

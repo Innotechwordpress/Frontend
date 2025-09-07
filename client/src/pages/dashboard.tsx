@@ -528,8 +528,23 @@ export default function Dashboard() {
                                     <TooltipTrigger asChild>
                                       <Badge variant="outline" className="border-purple-400 text-purple-400 text-xs cursor-help">
                                         Relevancy: {(() => {
-                                          console.log('Relevancy debug for', credibilityData?.company_name, ':', credibilityData?.relevancy_score, typeof credibilityData?.relevancy_score);
-                                          const score = credibilityData?.relevancy_score;
+                                          const relevancyScore = credibilityData?.relevancy_score;
+                                          console.log('Relevancy debug for', credibilityData?.company_name, ':', relevancyScore, typeof relevancyScore);
+                                          
+                                          // Handle different data types and ensure we show the actual score
+                                          if (relevancyScore === null || relevancyScore === undefined) {
+                                            return 'N/A';
+                                          }
+                                          
+                                          const numericScore = typeof relevancyScore === 'string' ? parseFloat(relevancyScore) : relevancyScore;
+                                          
+                                          if (isNaN(numericScore)) {
+                                            return 'N/A';
+                                          }
+                                          
+                                          return `${numericScore.toFixed(1)}%`;
+                                        })()}
+                                      </Badge>elevancy_score;
                                           if (score !== undefined && score !== null && score !== 'N/A' && !isNaN(Number(score))) {
                                             return `${Number(score).toFixed(1)}%`;
                                           }
