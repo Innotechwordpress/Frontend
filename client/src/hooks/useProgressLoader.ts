@@ -64,11 +64,20 @@ export const useProgressLoader = () => {
     setIsLoading(false);
   }, []);
 
+  const completeProgress = useCallback(() => {
+    setProgress(100);
+    setCurrentStep('Complete!');
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
+  }, []);
+
   return {
     progress,
     currentStep,
     isLoading,
     startProgress,
     resetProgress,
+    completeProgress,
   };
 };

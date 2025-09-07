@@ -25,7 +25,7 @@ export default function Dashboard() {
     type: 'subject' | 'credibility' | 'intent_summary';
     data: any;
   } | null>(null);
-  const { progress, currentStep, isLoading: isProgressLoading, startProgress, resetProgress } = useProgressLoader();
+  const { progress, currentStep, isLoading: isProgressLoading, startProgress, resetProgress, completeProgress } = useProgressLoader();
 
   // Update time every minute for live greeting
   useEffect(() => {
@@ -184,20 +184,17 @@ export default function Dashboard() {
   const handleParseEmails = async () => {
     resetProgress(); // Reset progress before starting
 
-    // Define progress steps for email parsing
-    const progressSteps = [
-      { id: 'connecting', label: 'Connecting to email server...', duration: 1000 },
-      { id: 'fetching', label: 'Fetching unread emails...', duration: 2000 },
-      { id: 'parsing', label: 'Parsing email content...', duration: 2500 },
-      { id: 'analyzing', label: 'Analyzing company details...', duration: 3000 },
-      { id: 'classifying', label: 'Classifying email intent...', duration: 1500 },
-      { id: 'finalizing', label: 'Finalizing results...', duration: 1000 }
+    // Define initial progress steps for UI feedback
+    const initialSteps = [
+      { id: 'connecting', label: 'Connecting to email server...', duration: 500 },
+      { id: 'fetching', label: 'Fetching unread emails...', duration: 1000 },
+      { id: 'parsing', label: 'Processing emails with AI...', duration: 1500 }
     ];
 
     try {
-      // Start progress animation
-      startProgress(progressSteps, () => {
-        console.log('Email parsing completed!');
+      // Start initial progress animation
+      startProgress(initialSteps, () => {
+        console.log('Initial steps completed, waiting for API...');
       });
 
       // Fetch emails with progress indication
@@ -215,6 +212,9 @@ export default function Dashboard() {
 
       const data = await response.json();
       console.log("Parsing completed:", data);
+
+      // Complete progress immediately when API responds
+      completeProgress();
 
       // Update the state with processed data
       setUnreadEmails(data.emails || []);
