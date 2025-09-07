@@ -31,7 +31,7 @@ export default function Dashboard() {
   } | null>(null);
   const [domainContext, setDomainContext] = useState("");
   const [canStartParsing, setCanStartParsing] = useState(false);
-  const { progress, currentStep, isLoading: isProgressLoading, startDynamicProgress, resetProgress } = useProgressLoader();
+  const { progress, currentStep, isLoading: isProgressLoading, startDynamicProgress, completeProgress, resetProgress } = useProgressLoader();
   const [isParsingStarted, setIsParsingStarted] = useState(false);
   const [isProcessingEmails, setIsProcessingEmails] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
@@ -225,6 +225,8 @@ export default function Dashboard() {
       { id: 'finalizing', label: 'Finalizing analysis and loading data...', weight: 1 }
     ];
 
+    let progressInterval: NodeJS.Timeout | null = null;
+
     try {
       // Add debugging logs for domain context and request payload
       console.log('🚀 STARTING PARSING WITH CONTEXT:', domainContext);
@@ -236,7 +238,7 @@ export default function Dashboard() {
       setProcessingStatus('Starting AI analysis...');
 
       // Start the progress loader BEFORE making the API call
-      startDynamicProgress(progressSteps);
+      progressInterval = startDynamicProgress(progressSteps);
 
       const response = await fetch("/api/emails/start-parsing", {
         method: "POST",
@@ -256,13 +258,20 @@ export default function Dashboard() {
       const data = await response.json();
       console.log("API Response received:", data);
 
+      // Clear the progress interval
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+
+      // Complete the progress bar
+      completeProgress();
+
       // Update the state with processed data
       setUnreadEmails(data.emails || []);
       setUnreadCount(data.count || 0);
       setCredibilityAnalysis(data.credibility_analysis || []);
 
-      // Reset progress and parsing states
-      resetProgress();
+      // Reset parsing states
       setIsParsingStarted(false);
       setIsProcessingEmails(false);
       setProcessingStatus('');
@@ -273,6 +282,12 @@ export default function Dashboard() {
       });
     } catch (error: any) {
       console.error("Error starting parsing:", error);
+      
+      // Clear the progress interval on error
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
+      
       toast({
         title: "Parsing Failed",
         description: error.message || "Failed to start email parsing.",

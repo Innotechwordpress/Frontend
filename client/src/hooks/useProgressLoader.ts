@@ -11,7 +11,7 @@ export const useProgressLoader = () => {
   const [currentStep, setCurrentStep] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const startDynamicProgress = useCallback(async (steps: ProgressStep[], apiCall: () => Promise<any>) => {
+  const startDynamicProgress = useCallback((steps: ProgressStep[]) => {
     setIsLoading(true);
     setProgress(0);
     
@@ -22,10 +22,10 @@ export const useProgressLoader = () => {
     // Start with first step
     setCurrentStep(steps[0].label);
 
-    // Gradually move through steps until API completes
+    // Gradually move through steps
     const progressInterval = setInterval(() => {
       if (currentStepIndex < steps.length - 1) {
-        // Move to next step every 3 seconds
+        // Move to next step every 2.5 seconds
         accumulatedWeight += steps[currentStepIndex].weight;
         currentStepIndex++;
         setCurrentStep(steps[currentStepIndex].label);
@@ -34,30 +34,20 @@ export const useProgressLoader = () => {
         const stepProgress = (accumulatedWeight / totalWeight) * 90;
         setProgress(Math.min(stepProgress, 90));
       }
-    }, 3000);
+    }, 2500);
 
-    try {
-      // Wait for API to complete
-      const result = await apiCall();
-      
-      // Clear the interval once API responds
-      clearInterval(progressInterval);
-      
-      // Complete progress to 100%
-      setCurrentStep('Processing complete! Loading results...');
-      setProgress(100);
-      
-      // Brief delay before hiding
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 1000);
-      
-      return result;
-    } catch (error) {
-      clearInterval(progressInterval);
+    // Store interval reference for cleanup
+    return progressInterval;
+  }, []);
+
+  const completeProgress = useCallback(() => {
+    setCurrentStep('Processing complete! Loading results...');
+    setProgress(100);
+    
+    // Brief delay before hiding
+    setTimeout(() => {
       setIsLoading(false);
-      throw error;
-    }
+    }, 1000);
   }, []);
 
   const resetProgress = useCallback(() => {
@@ -71,6 +61,7 @@ export const useProgressLoader = () => {
     currentStep,
     isLoading,
     startDynamicProgress,
+    completeProgress,
     resetProgress,
   };
 };
