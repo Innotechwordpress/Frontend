@@ -51,11 +51,11 @@ export const useProgressLoader = () => {
       currentProgress += stepProgress;
     }
     
-    setProgress(100);
-    setTimeout(() => {
-      setIsLoading(false);
-      onComplete?.();
-    }, 500);
+    // Don't auto-complete at 100%, wait for manual completion
+    setProgress(Math.min(currentProgress, 99));
+    
+    // Call onComplete but don't end loading automatically
+    onComplete?.();
   }, []);
 
   const resetProgress = useCallback(() => {

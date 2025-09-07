@@ -184,21 +184,26 @@ export default function Dashboard() {
   const handleParseEmails = async () => {
     resetProgress(); // Reset progress before starting
 
-    // Define progress steps that match actual AI processing time (60-90 seconds)
+    // Define progress steps that extend to match actual processing time (120+ seconds)
     const progressSteps = [
-      { id: 'connecting', label: 'Connecting to email server...', duration: 3000 },
-      { id: 'fetching', label: 'Fetching unread emails...', duration: 5000 },
-      { id: 'extracting', label: 'Extracting company information from email content...', duration: 20000 },
-      { id: 'analyzing', label: 'Analyzing company credibility with OpenAI...', duration: 25000 },
-      { id: 'processing', label: 'Processing financial data and market analysis...', duration: 20000 },
-      { id: 'classifying', label: 'Classifying email intent and generating summaries...', duration: 15000 },
-      { id: 'finalizing', label: 'Finalizing analysis and preparing results...', duration: 7000 }
+      { id: 'connecting', label: 'Connecting to email server...', duration: 5000 },
+      { id: 'fetching', label: 'Fetching unread emails...', duration: 8000 },
+      { id: 'extracting', label: 'Extracting company information from email content...', duration: 25000 },
+      { id: 'analyzing', label: 'Analyzing company credibility with OpenAI (1/3)...', duration: 30000 },
+      { id: 'processing', label: 'Processing financial data and market analysis (2/3)...', duration: 25000 },
+      { id: 'classifying', label: 'Classifying email intent and generating summaries (3/3)...', duration: 20000 },
+      { id: 'compiling', label: 'Compiling results and preparing response...', duration: 12000 },
+      { id: 'finalizing', label: 'Finalizing analysis and loading data...', duration: 10000 }
     ];
 
     try {
-      // Start progress animation that matches actual processing time (~95 seconds)
+      // Start progress animation but DON'T let it complete automatically
+      let progressCompleted = false;
       startProgress(progressSteps, () => {
-        console.log('Progress animation completed - processing should be done');
+        if (!progressCompleted) {
+          console.log('Progress animation reached end, but waiting for API...');
+          // Don't actually complete yet - wait for API
+        }
       });
 
       // Start API call and wait for it to complete (this now waits for all processing)
@@ -217,7 +222,8 @@ export default function Dashboard() {
       const data = await response.json();
       console.log("API Response received:", data);
 
-      // Complete progress when API responds (all processing is now truly done)
+      // NOW complete progress when API actually responds
+      progressCompleted = true;
       completeProgress();
 
       // Update the state with processed data
