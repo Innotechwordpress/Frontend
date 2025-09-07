@@ -63,25 +63,25 @@ async def process_single_email(email, settings, oauth_token=""):
         print(f"   Extracted company: {company_name}")
         print(f"🔍🔍🔍 END EMAIL DEBUG 🔍🔍🔍")
 
+        # Create a more specific prompt that forces reading actual content
         prompt = f"""
-        Analyze this specific email and provide accurate analysis based on its ACTUAL content.
+        YOU MUST READ AND ANALYZE THIS SPECIFIC EMAIL CONTENT ONLY:
 
-        EMAIL CONTENT TO ANALYZE:
+        === EMAIL TO ANALYZE ===
         From: {sender}
-        Subject: {subject}
-        Body: {body[:2000]}
-
+        Subject: "{subject}"
+        Body: {body[:1500]}
         Company: {company_name}
+        === END EMAIL ===
 
-        CRITICAL: Read the email content above and create an email_summary that describes EXACTLY what this email is about.
+        STRICT INSTRUCTIONS:
+        1. Read the ACTUAL subject line: "{subject}"
+        2. Read the ACTUAL email body content above
+        3. Create a summary that matches ONLY what this email says
+        4. DO NOT use generic templates like "purchase order" or "steel sheets" unless they are ACTUALLY in this email
+        5. Your summary must be unique to THIS email's content
 
-        Examples of good email summaries:
-        - If email is about repair: "Confirmation of repair and maintenance scheduling for assembly line on [date]"
-        - If email is about surveys: "Customer feedback survey request for [service]"
-        - If email is about meetings: "Meeting invitation for [topic] on [date]"
-        - If email is about orders: "Purchase order confirmation for [items]"
-
-        Return ONLY this JSON:
+        Based on the ACTUAL content above, return this JSON:
         {{
             "company_analysis": {{
                 "company_name": "{company_name}",
@@ -95,13 +95,13 @@ async def process_single_email(email, settings, oauth_token=""):
                 "funding_status": "Private",
                 "is_personal_email": {is_personal_email}
             }},
-            "email_intent": "business_inquiry",
-            "email_summary": "MUST describe what THIS specific email actually says - read the subject and body above",
+            "email_intent": "[intent based on ACTUAL email content]",
+            "email_summary": "[Describe what THIS specific email is about - use the actual subject '{subject}' and body content above]",
             "company_gist": "Brief company description",
             "intent_confidence": 0.8
         }}
 
-        MANDATORY: email_summary must be unique and specific to this email's actual content, not a generic template.
+        CRITICAL: The email_summary MUST reflect the actual subject "{subject}" and body content. If the email is about maintenance, say maintenance. If it's about surveys, say surveys. If it's about meetings, say meetings. Do NOT use the same template for all emails.
         """
 
         response = await client.chat.completions.create(
