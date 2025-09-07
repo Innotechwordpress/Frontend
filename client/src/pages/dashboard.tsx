@@ -235,12 +235,13 @@ export default function Dashboard() {
       setIsProcessingEmails(true);
       setProcessingStatus('Starting AI analysis...');
 
+      // Start the progress loader BEFORE making the API call
+      startDynamicProgress(progressSteps);
+
       const response = await fetch("/api/emails/start-parsing", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Add authorization header if you have an access token
-          // 'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           domain_context: domainContext.trim()
@@ -259,6 +260,12 @@ export default function Dashboard() {
       setUnreadEmails(data.emails || []);
       setUnreadCount(data.count || 0);
       setCredibilityAnalysis(data.credibility_analysis || []);
+
+      // Reset progress and parsing states
+      resetProgress();
+      setIsParsingStarted(false);
+      setIsProcessingEmails(false);
+      setProcessingStatus('');
 
       toast({ 
         title: "Parsing Complete", 
