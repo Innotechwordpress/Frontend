@@ -544,12 +544,6 @@ export default function Dashboard() {
                                           
                                           return `${numericScore.toFixed(1)}%`;
                                         })()}
-                                      </Badge>elevancy_score;
-                                          if (score !== undefined && score !== null && score !== 'N/A' && !isNaN(Number(score))) {
-                                            return `${Number(score).toFixed(1)}%`;
-                                          }
-                                          return 'N/A';
-                                        })()}
                                       </Badge>
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-gray-800 border border-gray-700 text-white p-2 rounded-md max-w-xs">
