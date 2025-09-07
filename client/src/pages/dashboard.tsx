@@ -519,7 +519,7 @@ export default function Dashboard() {
                                   {credibilityData.relevancy_explanation}
                                 </p>
                               )}
-                              <div className="flex items-center gap-2 mt-1"></div>
+                              <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="outline" className="border-green-400 text-green-400 text-xs">
                                   Credibility: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
                                 </Badge>
