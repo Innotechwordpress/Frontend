@@ -29,6 +29,14 @@ async def calculate_relevancy_score(email_content: dict, company_info: str, doma
         subject = email_content.get('subject', 'No Subject') if isinstance(email_content, dict) else 'No Subject'
         body = email_content.get('body', email_content.get('snippet', 'No content')) if isinstance(email_content, dict) else str(email_content)
         
+        print(f"📧📧📧 RELEVANCY SCORER EMAIL DATA CHECK 📧📧📧")
+        print(f"   Email content type: {type(email_content)}")
+        print(f"   Email content keys: {list(email_content.keys()) if isinstance(email_content, dict) else 'Not a dict'}")
+        print(f"   Subject extracted: {subject}")
+        print(f"   Body extracted (first 300 chars): {body[:300]}")
+        print(f"   Company info: {company_info}")
+        print(f"📧📧📧 END RELEVANCY EMAIL DATA 📧📧📧")
+        
         prompt = f"""
 You are a business relevancy analyst. Analyze how relevant this email is to the user's business context.
 
