@@ -61,19 +61,25 @@ async def process_single_email(email, settings, oauth_token=""):
         Company: {company_name}
         Email from: {sender}
         Subject: {subject}
-        Body: {body[:1000]}
+        Email Body: {body[:1000]}
 
-        CRITICAL: You must provide realistic estimates for ALL financial fields. Never use "N/A", "Unknown", null, or 0 for market_cap and funding_status.
+        CRITICAL INSTRUCTIONS:
+        1. The email_summary MUST accurately reflect the ACTUAL email content above - do not make up content
+        2. Base the company analysis on the ACTUAL company name: {company_name}
+        3. Provide realistic estimates for ALL financial fields. Never use "N/A", "Unknown", null, or 0
 
         Guidelines for estimates:
         - Large tech companies (Google, Microsoft, Apple, Indeed, Stripe): market_cap: 50000000000-500000000000, funding_status: "Public"
-        - Medium companies (Internshala, Naukri, Krish Technolabs): market_cap: 100000000-5000000000, funding_status: "Series B/C" or "Private"
+        - Medium companies (Internshala, Naukri, Krish Technolabs): market_cap: 100000000-5000000000, funding_status: "Series B/C" or "Private"  
         - Small companies/startups: market_cap: 10000000-100000000, funding_status: "Series A/Seed" or "Bootstrap"
         - Revenue should be 10-20% of market cap typically
 
         For credibility scores: Well-known companies (90-95), Medium companies (75-85), Small companies (60-75).
 
-        IMPORTANT: Write a detailed, accurate company summary based on what you know about the company. Do NOT use generic templates.
+        CRITICAL: 
+        - The email_summary must describe what THIS SPECIFIC email is about, not generic company information
+        - Use the ACTUAL company name ({company_name}) in your analysis, not a different company
+        - Write accurate company summary based on what you know about {company_name}
 
         Return ONLY valid JSON in this exact format:
         {{
@@ -88,13 +94,13 @@ async def process_single_email(email, settings, oauth_token=""):
             "revenue": 250000000,
             "funding_status": "Series B"
           }},
-          "email_intent": "job_application",
-          "email_summary": "Brief email summary",
-          "company_gist": "Write a detailed, specific summary about what this company actually does, their main products/services, their market position, and key business focus. Be specific and accurate - do not use generic templates.",
+          "email_intent": "business_inquiry",
+          "email_summary": "Summarize what THIS SPECIFIC email is about based on the subject and body content above",
+          "company_gist": "Write a detailed, specific summary about what {company_name} actually does, their main products/services, market position, and key business focus. Be accurate for {company_name}.",
           "intent_confidence": 0.9
         }}
 
-        MANDATORY: Provide realistic numerical estimates for market_cap (in dollars) and specific funding_status. Do not use placeholder text.
+        MANDATORY: Provide realistic numerical estimates and ensure email_summary matches the actual email content.
         """
 
         response = await client.chat.completions.create(
