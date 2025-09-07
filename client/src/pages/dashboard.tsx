@@ -515,9 +515,12 @@ export default function Dashboard() {
                                 Subject: {email.subject || 'No Subject'}
                               </p>
                               {credibilityData?.relevancy_explanation && (
-                                <p className="text-xs text-gray-300 italic mt-1 mb-2">
-                                  {credibilityData.relevancy_explanation}
-                                </p>
+                                <div className="mt-2 mb-2">
+                                  <p className="text-xs text-gray-500 font-medium mb-1">Relevancy Reason:</p>
+                                  <p className="text-xs text-gray-300 italic">
+                                    {credibilityData.relevancy_explanation}
+                                  </p>
+                                </div>
                               )}
                               <div className="flex items-center gap-2 mt-1">
                                 <Badge variant="outline" className="border-green-400 text-green-400 text-xs">
