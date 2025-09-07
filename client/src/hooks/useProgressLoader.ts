@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 
 export interface ProgressStep {
@@ -17,63 +16,45 @@ export const useProgressLoader = () => {
     setProgress(0);
     
     const totalWeight = steps.reduce((sum, step) => sum + step.weight, 0);
-    let currentWeight = 0;
-    let stepIndex = 0;
+    let currentStepIndex = 0;
+    let accumulatedWeight = 0;
     
-    const startTime = Date.now();
-    
-    // Start the API call
-    const apiPromise = apiCall();
-    
-    // Animate progress while API is running
-    const animateProgress = () => {
-      const elapsed = Date.now() - startTime;
-      
-      // Update step based on elapsed time
-      const stepDuration = 2000; // 2 seconds per step
-      const targetStep = Math.min(Math.floor(elapsed / stepDuration), steps.length - 1);
-      
-      if (targetStep > stepIndex) {
-        // Move to next step
-        currentWeight += steps[stepIndex].weight;
-        stepIndex = targetStep;
+    // Start with first step
+    setCurrentStep(steps[0].label);
+
+    // Gradually move through steps until API completes
+    const progressInterval = setInterval(() => {
+      if (currentStepIndex < steps.length - 1) {
+        // Move to next step every 3 seconds
+        accumulatedWeight += steps[currentStepIndex].weight;
+        currentStepIndex++;
+        setCurrentStep(steps[currentStepIndex].label);
+
+        // Calculate progress based on completed steps (max 90%)
+        const stepProgress = (accumulatedWeight / totalWeight) * 90;
+        setProgress(Math.min(stepProgress, 90));
       }
-      
-      if (stepIndex < steps.length) {
-        setCurrentStep(steps[stepIndex].label);
-        
-        // Calculate progress within current step
-        const stepElapsed = elapsed - (stepIndex * stepDuration);
-        const stepProgress = Math.min(stepElapsed / stepDuration, 1);
-        const currentStepWeight = steps[stepIndex].weight * stepProgress;
-        
-        const totalProgress = (currentWeight + currentStepWeight) / totalWeight * 98; // Cap at 98%
-        setProgress(Math.min(totalProgress, 98));
-      }
-      
-      // Continue animation if API hasn't responded yet
-      if (apiPromise) {
-        requestAnimationFrame(animateProgress);
-      }
-    };
-    
-    // Start progress animation
-    animateProgress();
-    
+    }, 3000);
+
     try {
       // Wait for API to complete
-      const result = await apiPromise;
+      const result = await apiCall();
       
-      // Complete progress
-      setProgress(100);
+      // Clear the interval once API responds
+      clearInterval(progressInterval);
+      
+      // Complete progress to 100%
       setCurrentStep('Processing complete! Loading results...');
+      setProgress(100);
       
+      // Brief delay before hiding
       setTimeout(() => {
         setIsLoading(false);
-      }, 500);
+      }, 1000);
       
       return result;
     } catch (error) {
+      clearInterval(progressInterval);
       setIsLoading(false);
       throw error;
     }
