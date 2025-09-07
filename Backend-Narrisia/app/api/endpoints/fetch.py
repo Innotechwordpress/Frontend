@@ -55,6 +55,14 @@ async def process_single_email(email, settings, oauth_token=""):
         client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, http_client=httpx.AsyncClient(timeout=15.0))
 
         # Improved prompt for better JSON and credibility score accuracy
+        print(f"🔍🔍🔍 EMAIL CONTENT ANALYSIS DEBUG 🔍🔍🔍")
+        print(f"   Sender: {sender}")
+        print(f"   Subject: {subject}")
+        print(f"   Body (first 500 chars): {body[:500]}")
+        print(f"   Full body length: {len(body) if body else 0}")
+        print(f"   Extracted company: {company_name}")
+        print(f"🔍🔍🔍 END EMAIL DEBUG 🔍🔍🔍")
+
         prompt = f"""
         You are a business analyst. Analyze the email below and provide a comprehensive JSON response with realistic estimates.
 
@@ -70,7 +78,7 @@ async def process_single_email(email, settings, oauth_token=""):
         2. The email_summary must describe EXACTLY what this specific email says
         3. DO NOT make up content or use generic descriptions
         4. If the email is about repair scheduling, say "repair scheduling"
-        5. If the email is about food delivery survey, say "food delivery survey" 
+        5. If the email is about food delivery survey, say "food delivery survey"
         6. If the email is about job applications, say "job application"
         7. NEVER use generic phrases like "acknowledging purchase order" unless that's actually in the email
 
@@ -448,20 +456,20 @@ async def extract_company_name(email):
     sender = email.get("sender", "")
     subject = email.get("subject", "")
     body = email.get("body", "") or email.get("snippet", "")
-    
+
     print(f"🔍 EXTRACT_COMPANY_NAME INPUT:")
     print(f"   Sender: {sender}")
     print(f"   Subject: {subject}")
     print(f"   Body preview: {body[:100] if body else 'No body'}")
-    
+
     from app.utils.extract import extract_company_name_from_email_content
     company_result = extract_company_name_from_email_content(
         sender=sender, subject=subject, body=body, email_data=email
     )
-    
+
     company_name = company_result["company_name"] if isinstance(company_result, dict) else str(company_result)
     print(f"   Extracted company: {company_name}")
-    
+
     return company_name
 
 # Helper function to analyze company with relevancy scoring
