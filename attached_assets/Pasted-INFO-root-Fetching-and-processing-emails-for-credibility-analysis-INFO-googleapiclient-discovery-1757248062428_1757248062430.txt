@@ -1,0 +1,168 @@
+INFO:root:🚀 Fetching and processing emails for credibility analysis
+INFO:googleapiclient.discovery_cache:file_cache is only supported with oauth2client<4.0.0
+INFO:root:Gmail service initialized with access token
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages with params: {'q': 'is:unread in:inbox', 'maxResults': 50}
+INFO:root:📧 Found 9 messages matching query 'is:unread in:inbox'
+INFO:root:Processing message 1/9: 19919b4c4e55f13d
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/19919b4c4e55f13d with params: None
+INFO:     172.31.87.34:44526 - "GET /api/user HTTP/1.1" 200 OK
+INFO:root:Message 19919b4c4e55f13d: From='"Naukri.com" <donotreply_mailer@naukri.com>', Subject='You have 3 new jobs in your inbox!', labels=['UNREAD', 'CATEGORY_UPDATES', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: '"Naukri.com" <donotreply_mailer@naukri.com>'
+INFO:root:Processed sender: 'Naukri <donotreply_mailer@naukri.com>'
+INFO:root:✅ Added email: "Naukri.com" <donotreply_mailer@naukri.com> - You have 3 new jobs in your inbox!
+INFO:root:Processing message 2/9: 199188d273063fb0
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/199188d273063fb0 with params: None
+INFO:root:Message 199188d273063fb0: From='Indeed <donotreply@match.indeed.com>', Subject='Project Manager at GAJAB - Aeliya Technologies Pvt', labels=['UNREAD', 'CATEGORY_UPDATES', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: 'Indeed <donotreply@match.indeed.com>'
+INFO:root:Processed sender: 'Indeed <donotreply@match.indeed.com>'
+INFO:root:✅ Added email: Indeed <donotreply@match.indeed.com> - Project Manager at GAJAB - Aeliya Technologies Pvt
+INFO:root:Processing message 3/9: 199148f47e84890a
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/199148f47e84890a with params: None
+INFO:root:Message 199148f47e84890a: From='"Naukri.com" <donotreply_mailer@naukri.com>', Subject='You have a new job in your inbox!', labels=['UNREAD', 'CATEGORY_UPDATES', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: '"Naukri.com" <donotreply_mailer@naukri.com>'
+INFO:root:Processed sender: 'Naukri <donotreply_mailer@naukri.com>'
+INFO:root:✅ Added email: "Naukri.com" <donotreply_mailer@naukri.com> - You have a new job in your inbox!
+INFO:root:Processing message 4/9: 1991468ea3d169ab
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/1991468ea3d169ab with params: None
+INFO:root:Message 1991468ea3d169ab: From='HDL Consultants <priya.pateriyaaGRsY29uc3VsdGFudHM', Subject='✉️ Job | Seo Manager in Corporate - Bengaluru', labels=['UNREAD', 'IMPORTANT', 'CATEGORY_UPDATES', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: 'HDL Consultants <priya.pateriyaaGRsY29uc3VsdGFudHMuY29t@naukri.com>'
+INFO:root:Processed sender: 'Naukri <priya.pateriyaaGRsY29uc3VsdGFudHMuY29t@naukri.com>'
+INFO:root:✅ Added email: HDL Consultants <priya.pateriyaaGRsY29uc3VsdGFudHM - ✉️ Job | Seo Manager in Corporate - Bengaluru
+INFO:root:Processing message 5/9: 199041f6185d3d85
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/199041f6185d3d85 with params: None
+INFO:root:Message 199041f6185d3d85: From='Naukri Alerts <naukrialerts@naukri.com>', Subject='Guruprasath, New Job Opportunities for Project Man', labels=['UNREAD', 'IMPORTANT', 'CATEGORY_UPDATES', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: 'Naukri Alerts <naukrialerts@naukri.com>'
+INFO:root:Processed sender: 'Naukri <naukrialerts@naukri.com>'
+INFO:root:✅ Added email: Naukri Alerts <naukrialerts@naukri.com> - Guruprasath, New Job Opportunities for Project Man
+INFO:root:Processing message 6/9: 1990333350033f57
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/1990333350033f57 with params: None
+INFO:root:Message 1990333350033f57: From='Indeed <donotreply@match.indeed.com>', Subject='MEP Co-ordinator-Senior (Design & Drafting) at Gor', labels=['UNREAD', 'CATEGORY_UPDATES', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: 'Indeed <donotreply@match.indeed.com>'
+INFO:root:Processed sender: 'Indeed <donotreply@match.indeed.com>'
+INFO:root:✅ Added email: Indeed <donotreply@match.indeed.com> - MEP Co-ordinator-Senior (Design & Drafting) at Gor
+INFO:root:Processing message 7/9: 1990332c5171841f
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/1990332c5171841f with params: None
+INFO:root:Message 1990332c5171841f: From='Indeed <donotreply@match.indeed.com>', Subject='Architect @ studio swap', labels=['UNREAD', 'CATEGORY_UPDATES', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: 'Indeed <donotreply@match.indeed.com>'
+INFO:root:Processed sender: 'Indeed <donotreply@match.indeed.com>'
+INFO:root:✅ Added email: Indeed <donotreply@match.indeed.com> - Architect @ studio swap
+INFO:root:Processing message 8/9: 198fe6ab82e4ba44
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/198fe6ab82e4ba44 with params: None
+INFO:root:Message 198fe6ab82e4ba44: From='Naukri <job-invitesbmF1a3JpLmNvbQ==@naukri.com>', Subject='⏰ Exciting Job Opportunity Awaiting You!', labels=['CATEGORY_PROMOTIONS', 'UNREAD', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: 'Naukri <job-invitesbmF1a3JpLmNvbQ==@naukri.com>'
+INFO:root:Processed sender: 'Naukri <job-invitesbmF1a3JpLmNvbQ==@naukri.com>'
+INFO:root:✅ Added email: Naukri <job-invitesbmF1a3JpLmNvbQ==@naukri.com> - ⏰ Exciting Job Opportunity Awaiting You!
+INFO:root:Processing message 9/9: 198e8dacd9b04e57
+INFO:root:Making GET request to https://www.googleapis.com/gmail/v1/users/me/messages/198e8dacd9b04e57 with params: None
+INFO:root:Message 198e8dacd9b04e57: From='Naukri <info@naukri.com>', Subject='Guruprasath, Top companies are hiring on Naukri ri', labels=['CATEGORY_PROMOTIONS', 'UNREAD', 'INBOX'], unread=True, inbox=True, primary=False
+INFO:root:Raw sender extracted: 'Naukri <info@naukri.com>'
+INFO:root:Processed sender: 'Naukri <info@naukri.com>'
+INFO:root:✅ Added email: Naukri <info@naukri.com> - Guruprasath, Top companies are hiring on Naukri ri
+INFO:root:📊 SUMMARY:
+INFO:root:  - Total messages processed: 9
+INFO:root:  - Messages in primary: 0
+INFO:root:  - Final emails returned: 9
+INFO:root:📧 Returned emails:
+INFO:root:  1. From: Naukri <donotreply_mailer@naukri.com>
+INFO:root:      Subject: You have 3 new jobs in your inbox!
+INFO:root:      Labels: ['UNREAD', 'CATEGORY_UPDATES', 'INBOX']
+INFO:root:  2. From: Indeed <donotreply@match.indeed.com>
+INFO:root:      Subject: Project Manager at GAJAB - Aeliya Technologies Pvt
+INFO:root:      Labels: ['UNREAD', 'CATEGORY_UPDATES', 'INBOX']
+INFO:root:  3. From: Naukri <donotreply_mailer@naukri.com>
+INFO:root:      Subject: You have a new job in your inbox!
+INFO:root:      Labels: ['UNREAD', 'CATEGORY_UPDATES', 'INBOX']
+INFO:root:  4. From: Naukri <priya.pateriyaaGRsY29uc3VsdGFudHMuY29t@nau
+INFO:root:      Subject: ✉️ Job | Seo Manager in Corporate - Bengaluru
+INFO:root:      Labels: ['UNREAD', 'IMPORTANT', 'CATEGORY_UPDATES', 'INBOX']
+INFO:root:  5. From: Naukri <naukrialerts@naukri.com>
+INFO:root:      Subject: Guruprasath, New Job Opportunities for Project Man
+INFO:root:      Labels: ['UNREAD', 'IMPORTANT', 'CATEGORY_UPDATES', 'INBOX']
+INFO:root:  6. From: Indeed <donotreply@match.indeed.com>
+INFO:root:      Subject: MEP Co-ordinator-Senior (Design & Drafting) at Gor
+INFO:root:      Labels: ['UNREAD', 'CATEGORY_UPDATES', 'INBOX']
+INFO:root:  7. From: Indeed <donotreply@match.indeed.com>
+INFO:root:      Subject: Architect @ studio swap
+INFO:root:      Labels: ['UNREAD', 'CATEGORY_UPDATES', 'INBOX']
+INFO:root:  8. From: Naukri <job-invitesbmF1a3JpLmNvbQ==@naukri.com>
+INFO:root:      Subject: ⏰ Exciting Job Opportunity Awaiting You!
+INFO:root:      Labels: ['CATEGORY_PROMOTIONS', 'UNREAD', 'INBOX']
+INFO:root:  9. From: Naukri <info@naukri.com>
+INFO:root:      Subject: Guruprasath, Top companies are hiring on Naukri ri
+INFO:root:      Labels: ['CATEGORY_PROMOTIONS', 'UNREAD', 'INBOX']
+INFO:root:📧 Retrieved 9 emails from Gmail API
+INFO:root:📧 Processing: Naukri <donotreply_mailer@naukri.com>...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Naukri <donotreply_mailer@naukri.com>'
+📝 Subject: 'You have 3 new jobs in your inbox!'
+✅ Company found from sender display: Naukri
+INFO:root:📧 Processing: Indeed <donotreply@match.indeed.com>...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Indeed <donotreply@match.indeed.com>'
+📝 Subject: 'Project Manager at GAJAB - Aeliya Technologies Pvt Ltd in Marol, Mumbai, Maharashtra and 11 more new...' 
+✅ Company found from sender display: Indeed
+INFO:root:📧 Processing: Naukri <donotreply_mailer@naukri.com>...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Naukri <donotreply_mailer@naukri.com>'
+📝 Subject: 'You have a new job in your inbox!'
+✅ Company found from sender display: Naukri
+INFO:root:📧 Processing: Naukri <priya.pateriyaaGRsY29uc3VsdGFudHMuY29t@nau...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Naukri <priya.pateriyaaGRsY29uc3VsdGFudHMuY29t@naukri.com>'
+📝 Subject: '✉️ Job | Seo Manager in Corporate - Bengaluru'
+✅ Company found from sender display: Naukri
+INFO:root:📧 Processing: Naukri <naukrialerts@naukri.com>...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Naukri <naukrialerts@naukri.com>'
+📝 Subject: 'Guruprasath, New Job Opportunities for Project Manager, Product Manager'
+✅ Company found from sender display: Naukri
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:✅ Successfully analyzed email from Naukri
+INFO:root:📧 Processing: Indeed <donotreply@match.indeed.com>...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Indeed <donotreply@match.indeed.com>'
+📝 Subject: 'MEP Co-ordinator-Senior (Design & Drafting) at Goregaon West at Chettiar consulting engineers in Mum...' 
+✅ Company found from sender display: Indeed
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:✅ Successfully analyzed email from Naukri
+INFO:root:📧 Processing: Indeed <donotreply@match.indeed.com>...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Indeed <donotreply@match.indeed.com>'
+📝 Subject: 'Architect @ studio swap'
+✅ Company found from sender display: Indeed
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:✅ Successfully analyzed email from Naukri
+INFO:root:📧 Processing: Naukri <job-invitesbmF1a3JpLmNvbQ==@naukri.com>...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Naukri <job-invitesbmF1a3JpLmNvbQ==@naukri.com>'
+📝 Subject: '⏰ Exciting Job Opportunity Awaiting You!'
+✅ Company found from sender display: Naukri
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:✅ Successfully analyzed email from Indeed
+INFO:root:📧 Processing: Naukri <info@naukri.com>...
+🎯 Analyzing email content to extract company name
+📧 Sender: 'Naukri <info@naukri.com>'
+📝 Subject: 'Guruprasath, Top companies are hiring on Naukri right now!'
+✅ Company found from sender display: Naukri
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:✅ Successfully analyzed email from Naukri
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+WARNING:root:Failed to parse OpenAI response for Indeed: Expecting ',' delimiter: line 16 column 25 (char 1318)
+WARNING:root:Raw response: {
+  "company_analysis": {
+    "company_name": "Indeed",
+    "industry": "Technology",
+    "credibility_score": 92,
+    "employee_count": 10000,
+    "founded_year": 2004,
+    "business_verified": true,...
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:✅ Successfully analyzed email from Indeed
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:✅ Successfully analyzed email from Naukri
+INFO:httpx:HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+INFO:root:✅ Successfully analyzed email from Naukri
+INFO:root:🎯 Fast processing complete. Processed 9 emails in parallel
+INFO:     127.0.0.1:38598 - "GET /fetch/fetch/processed HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: GET http://localhost:5000/fetch/fetch/processed "HTTP/1.1 200 OK"
+INFO:     172.31.87.34:44514 - "POST /api/emails/start-parsing HTTP/1.1" 200 OK
