@@ -311,9 +311,7 @@ async def trigger_auto_processing(raw_emails, oauth_token):
 
 @router.get("/fetch", response_model=FetchEmailsResponse)
 async def fetch_unread_emails(
-    oauth_token: str = Header(
-        ..., alias="oauth-token"
-    ),  # Frontend must send the OAuth access token as 'oauth-token'
+    oauth_token: str = Header(..., alias="oauth-token")
 ):
     """
     Fetch unread emails from Gmail using OAuth token and parse them for frontend.
@@ -415,4 +413,50 @@ async def get_processed_emails(
 
     except Exception as e:
         logging.error(f"Error processing emails: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process emails: {str(e)}")
+
+@router.post("/start-parsing")
+async def start_parsing_emails(
+    oauth_token: str = Header(..., alias="oauth-token")
+):
+    """
+    Start parsing and processing emails with AI analysis.
+    This endpoint processes emails and returns complete analysis.
+    """
+    if not oauth_token:
+        raise HTTPException(status_code=401, detail="OAuth token required")
+
+    try:
+        logging.info("🚀 Starting comprehensive email parsing and analysis")
+
+        # Fetch emails
+        gmail_service = GmailOAuthService(access_token=oauth_token)
+        raw_emails = await gmail_service.fetch_unread_emails()
+
+        if not raw_emails:
+            logging.info("📭 No emails found to process")
+            return {
+                "emails": [],
+                "count": 0,
+                "credibility_analysis": [],
+                "message": "No emails found"
+            }
+
+        logging.info(f"📧 Found {len(raw_emails)} emails, starting AI analysis...")
+
+        # Process emails through auto-processing pipeline and WAIT for completion
+        processed_results = await trigger_auto_processing(raw_emails, oauth_token)
+
+        logging.info(f"✅ AI analysis completed for {len(processed_results)} emails")
+        logging.info("🎯 ALL PROCESSING COMPLETE! Returning results to frontend.")
+
+        return {
+            "emails": raw_emails,
+            "count": len(raw_emails),
+            "credibility_analysis": processed_results,
+            "message": f"Successfully processed {len(raw_emails)} emails with AI analysis"
+        }
+
+    except Exception as e:
+        logging.error(f"❌ Error in start-parsing: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to process emails: {str(e)}")
