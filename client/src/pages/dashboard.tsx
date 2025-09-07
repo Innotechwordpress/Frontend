@@ -184,35 +184,30 @@ export default function Dashboard() {
   const handleParseEmails = async () => {
     resetProgress(); // Reset progress before starting
 
-    // Define progress steps that realistically represent the AI processing time
+    // Define progress steps that match actual AI processing time (60-90 seconds)
     const progressSteps = [
-      { id: 'connecting', label: 'Connecting to email server...', duration: 2000 },
-      { id: 'fetching', label: 'Fetching unread emails...', duration: 3000 },
-      { id: 'extracting', label: 'Extracting company information...', duration: 15000 },
-      { id: 'analyzing', label: 'Analyzing company credibility with AI...', duration: 20000 },
+      { id: 'connecting', label: 'Connecting to email server...', duration: 3000 },
+      { id: 'fetching', label: 'Fetching unread emails...', duration: 5000 },
+      { id: 'extracting', label: 'Extracting company information from email content...', duration: 20000 },
+      { id: 'analyzing', label: 'Analyzing company credibility with OpenAI...', duration: 25000 },
+      { id: 'processing', label: 'Processing financial data and market analysis...', duration: 20000 },
       { id: 'classifying', label: 'Classifying email intent and generating summaries...', duration: 15000 },
-      { id: 'finalizing', label: 'Finalizing analysis...', duration: 5000 }
+      { id: 'finalizing', label: 'Finalizing analysis and preparing results...', duration: 7000 }
     ];
 
     try {
-      // Start progress animation
-      const progressPromise = new Promise<void>((resolve) => {
-        startProgress(progressSteps, () => {
-          console.log('Progress steps completed');
-          resolve();
-        });
+      // Start progress animation that matches actual processing time (~95 seconds)
+      startProgress(progressSteps, () => {
+        console.log('Progress animation completed - processing should be done');
       });
 
-      // Start API call
-      const apiPromise = fetch("/api/emails/start-parsing", {
+      // Start API call and wait for it to complete (this now waits for all processing)
+      const response = await fetch("/api/emails/start-parsing", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
       });
-
-      // Wait for API call to complete
-      const response = await apiPromise;
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -222,7 +217,7 @@ export default function Dashboard() {
       const data = await response.json();
       console.log("API Response received:", data);
 
-      // Complete progress immediately when API responds (processing is actually done)
+      // Complete progress when API responds (all processing is now truly done)
       completeProgress();
 
       // Update the state with processed data
@@ -232,7 +227,7 @@ export default function Dashboard() {
 
       toast({ 
         title: "Parsing Complete", 
-        description: "Email analysis and credibility scoring completed!" 
+        description: `Successfully analyzed ${data.count || 0} emails with AI!` 
       });
     } catch (error: any) {
       console.error("Error starting parsing:", error);

@@ -421,7 +421,7 @@ async def start_parsing_emails(
 ):
     """
     Start parsing and processing emails with AI analysis.
-    This endpoint processes emails and returns complete analysis.
+    This endpoint processes emails and returns complete analysis ONLY after all processing is done.
     """
     if not oauth_token:
         raise HTTPException(status_code=401, detail="OAuth token required")
@@ -429,7 +429,7 @@ async def start_parsing_emails(
     try:
         logging.info("🚀 Starting comprehensive email parsing and analysis")
 
-        # Fetch emails
+        # Fetch emails first
         gmail_service = GmailOAuthService(access_token=oauth_token)
         raw_emails = await gmail_service.fetch_unread_emails()
 
@@ -444,17 +444,25 @@ async def start_parsing_emails(
 
         logging.info(f"📧 Found {len(raw_emails)} emails, starting AI analysis...")
 
-        # Process emails through auto-processing pipeline and WAIT for completion
+        # CRITICAL: Wait for ALL AI processing to complete before responding
+        logging.info("⏳ Starting AI processing - this will take approximately 1-2 minutes...")
         processed_results = await trigger_auto_processing(raw_emails, oauth_token)
+
+        # Ensure we have results before proceeding
+        if not processed_results:
+            logging.warning("⚠️ No processed results returned from AI analysis")
+            processed_results = []
 
         logging.info(f"✅ AI analysis completed for {len(processed_results)} emails")
         logging.info("🎯 ALL PROCESSING COMPLETE! Returning results to frontend.")
 
+        # Final response after everything is truly done
         return {
             "emails": raw_emails,
             "count": len(raw_emails),
             "credibility_analysis": processed_results,
-            "message": f"Successfully processed {len(raw_emails)} emails with AI analysis"
+            "message": f"Successfully processed {len(raw_emails)} emails with complete AI analysis",
+            "processing_complete": True
         }
 
     except Exception as e:
