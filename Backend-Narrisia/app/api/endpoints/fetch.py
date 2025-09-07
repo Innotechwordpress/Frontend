@@ -23,20 +23,12 @@ logger = logging.getLogger(__name__)
 if not logger.handlers:
     logging.basicConfig(level=logging.INFO)
 
-async def process_single_email(email, settings, oauth_token=""):
-    """Process individual email with company analysis"""
+async def process_single_email(email, settings, oauth_token):
+    """Process a single email for company details, intent, and summary."""
     try:
         sender = email.get("sender", "")
         subject = email.get("subject", "")
         body = email.get("body", "") or email.get("snippet", "")
-
-        print(f"🔍🔍🔍 PROCESSING INDIVIDUAL EMAIL 🔍🔍🔍")
-        print(f"   Email ID: {email.get('id', 'No ID')}")
-        print(f"   Sender: {sender}")
-        print(f"   Subject: {subject}")
-        print(f"   Body (full): {body}")
-        print(f"   Email data keys: {list(email.keys())}")
-        print(f"🔍🔍🔍 END EMAIL DATA 🔍🔍🔍")
 
         logging.info(f"📧 Processing: {sender[:50]}...")
 
@@ -55,53 +47,46 @@ async def process_single_email(email, settings, oauth_token=""):
         client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, http_client=httpx.AsyncClient(timeout=15.0))
 
         # Improved prompt for better JSON and credibility score accuracy
-        print(f"🔍🔍🔍 EMAIL CONTENT ANALYSIS DEBUG 🔍🔍🔍")
-        print(f"   Sender: {sender}")
-        print(f"   Subject: {subject}")
-        print(f"   Body (first 500 chars): {body[:500]}")
-        print(f"   Full body length: {len(body) if body else 0}")
-        print(f"   Extracted company: {company_name}")
-        print(f"🔍🔍🔍 END EMAIL DEBUG 🔍🔍🔍")
-
-        # Create a more specific prompt that forces reading actual content
         prompt = f"""
-        YOU MUST READ AND ANALYZE THIS SPECIFIC EMAIL CONTENT ONLY:
+        You are a business analyst. Analyze the email below and provide a comprehensive JSON response with realistic estimates.
 
-        === EMAIL TO ANALYZE ===
-        From: {sender}
-        Subject: "{subject}"
-        Body: {body[:1500]}
         Company: {company_name}
-        === END EMAIL ===
+        Email from: {sender}
+        Subject: {subject}
+        Body: {body[:1000]}
 
-        STRICT INSTRUCTIONS:
-        1. Read the ACTUAL subject line: "{subject}"
-        2. Read the ACTUAL email body content above
-        3. Create a summary that matches ONLY what this email says
-        4. DO NOT use generic templates like "purchase order" or "steel sheets" unless they are ACTUALLY in this email
-        5. Your summary must be unique to THIS email's content
+        CRITICAL: You must provide realistic estimates for ALL financial fields. Never use "N/A", "Unknown", null, or 0 for market_cap and funding_status.
 
-        Based on the ACTUAL content above, return this JSON:
+        Guidelines for estimates:
+        - Large tech companies (Google, Microsoft, Apple, Indeed, Stripe): market_cap: 50000000000-500000000000, funding_status: "Public"
+        - Medium companies (Internshala, Naukri, Krish Technolabs): market_cap: 100000000-5000000000, funding_status: "Series B/C" or "Private"
+        - Small companies/startups: market_cap: 10000000-100000000, funding_status: "Series A/Seed" or "Bootstrap"
+        - Revenue should be 10-20% of market cap typically
+
+        For credibility scores: Well-known companies (90-95), Medium companies (75-85), Small companies (60-75).
+
+        IMPORTANT: Write a detailed, accurate company summary based on what you know about the company. Do NOT use generic templates.
+
+        Return ONLY valid JSON in this exact format:
         {{
-            "company_analysis": {{
-                "company_name": "{company_name}",
-                "industry": "Technology",
-                "credibility_score": 75,
-                "employee_count": 500,
-                "founded_year": 2015,
-                "business_verified": true,
-                "market_cap": 500000000,
-                "revenue": 75000000,
-                "funding_status": "Private",
-                "is_personal_email": {is_personal_email}
-            }},
-            "email_intent": "[intent based on ACTUAL email content]",
-            "email_summary": "[Describe what THIS specific email is about - use the actual subject '{subject}' and body content above]",
-            "company_gist": "Brief company description",
-            "intent_confidence": 0.8
+          "company_analysis": {{
+            "company_name": "{company_name}",
+            "industry": "Technology",
+            "credibility_score": 85,
+            "employee_count": 1000,
+            "founded_year": 2010,
+            "business_verified": true,
+            "market_cap": 1500000000,
+            "revenue": 250000000,
+            "funding_status": "Series B"
+          }},
+          "email_intent": "job_application",
+          "email_summary": "Brief email summary",
+          "company_gist": "Write a detailed, specific summary about what this company actually does, their main products/services, their market position, and key business focus. Be specific and accurate - do not use generic templates.",
+          "intent_confidence": 0.9
         }}
 
-        CRITICAL: The email_summary MUST reflect the actual subject "{subject}" and body content. If the email is about maintenance, say maintenance. If it's about surveys, say surveys. If it's about meetings, say meetings. Do NOT use the same template for all emails.
+        MANDATORY: Provide realistic numerical estimates for market_cap (in dollars) and specific funding_status. Do not use placeholder text.
         """
 
         response = await client.chat.completions.create(
@@ -112,9 +97,6 @@ async def process_single_email(email, settings, oauth_token=""):
         )
 
         raw_text = response.choices[0].message.content.strip()
-        print(f"🤖🤖🤖 OPENAI RESPONSE FOR EMAIL 🤖🤖🤖")
-        print(f"   Full raw response: {raw_text}")
-        print(f"🤖🤖🤖 END OPENAI RESPONSE 🤖🤖🤖")
 
         # Clean the response text - remove any markdown code blocks
         if raw_text.startswith("```json"):
@@ -449,21 +431,11 @@ async def extract_company_name(email):
     sender = email.get("sender", "")
     subject = email.get("subject", "")
     body = email.get("body", "") or email.get("snippet", "")
-
-    print(f"🔍 EXTRACT_COMPANY_NAME INPUT:")
-    print(f"   Sender: {sender}")
-    print(f"   Subject: {subject}")
-    print(f"   Body preview: {body[:100] if body else 'No body'}")
-
     from app.utils.extract import extract_company_name_from_email_content
     company_result = extract_company_name_from_email_content(
         sender=sender, subject=subject, body=body, email_data=email
     )
-
-    company_name = company_result["company_name"] if isinstance(company_result, dict) else str(company_result)
-    print(f"   Extracted company: {company_name}")
-
-    return company_name
+    return company_result["company_name"]
 
 # Helper function to analyze company with relevancy scoring
 async def analyze_company_with_relevancy(company_name, email, domain_context, openai_api_key):
@@ -581,7 +553,7 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
 
             if company_analysis:
                 print(f"✅ BASIC ANALYSIS COMPLETE for {company_name}")
-                logging.info(f"✅ Successfully analyzed email from {company_name}")
+                logger.info(f"✅ Successfully analyzed email from {company_name}")
 
                 # Calculate relevancy score ALWAYS if domain context is provided
                 if domain_context and domain_context.strip():
@@ -590,26 +562,26 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
                         print(f"🎯 Company: {company_name}")
                         print(f"🎯 Domain context: {domain_context[:100]}...")
                         print(f"🎯 Email subject: {email.get('subject', 'No Subject')}")
-
+                        
                         relevancy_result = await calculate_relevancy_score(
                             email_content=email,
                             company_info=company_name,
                             domain_context=domain_context,
                             openai_api_key=settings.OPENAI_API_KEY
                         )
-
+                        
                         relevancy_score = relevancy_result.get('relevancy_score', 50.0)
                         relevancy_explanation = relevancy_result.get('relevancy_explanation', 'No explanation')
                         relevancy_confidence = relevancy_result.get('relevancy_confidence', 0.0)
-
+                        
                         print(f"🎯🎯🎯 RELEVANCY CALCULATION COMPLETE 🎯🎯🎯")
                         print(f"   Company: {company_name}")
                         print(f"   Score: {relevancy_score}% (type: {type(relevancy_score)})")
                         print(f"   Explanation: {relevancy_explanation[:100]}...")
                         print(f"   Confidence: {relevancy_confidence}")
-
+                        
                         logger.info(f"✅ Relevancy score calculated: {relevancy_score}% for {company_name}")
-
+                        
                     except Exception as relevancy_error:
                         print(f"❌❌❌ RELEVANCY CALCULATION FAILED: {relevancy_error}")
                         logger.error(f"❌ Relevancy calculation failed: {relevancy_error}")
@@ -630,34 +602,34 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
                     company_analysis['relevancy_score'] = float(relevancy_score)
                     company_analysis['relevancy_explanation'] = str(relevancy_explanation)
                     company_analysis['relevancy_confidence'] = float(relevancy_confidence)
-
+                    
                     print(f"🔥🔥🔥 FINAL COMPANY ANALYSIS UPDATE 🔥🔥🔥")
                     print(f"   Company: {company_analysis.get('company_name', 'Unknown')}")
                     print(f"   Credibility: {company_analysis.get('credibility_score', 'N/A')}")
                     print(f"   Relevancy: {company_analysis.get('relevancy_score', 'N/A')}% (type: {type(company_analysis.get('relevancy_score'))})")
                     print(f"   Intent: {company_analysis.get('intent', 'Unknown')}")
                     print(f"   Keys in analysis: {list(company_analysis.keys())}")
-
+                    
                     # Ensure all required fields are present for frontend
                     required_fields = {
                         'company_name': company_analysis.get('company_name', 'Unknown'),
                         'credibility_score': company_analysis.get('credibility_score', 75.0),
                         'relevancy_score': float(relevancy_score),
-                        'relevancy_explanation': str(relevancy_explanation),
+                        'relevancy_explanation': str(relevancy_explanation), 
                         'relevancy_confidence': float(relevancy_confidence),
                         'sender': sender,
                         'sender_domain': company_analysis.get('sender_domain', 'Unknown'),
                         'intent': company_analysis.get('intent', 'business_inquiry'),
                         'email_summary': company_analysis.get('email_summary', f"Email from {company_analysis.get('company_name', 'Unknown')}")
                     }
-
+                    
                     # Update company_analysis with all required fields
                     company_analysis.update(required_fields)
-
+                    
                     print(f"🎯🎯🎯 FINAL DATA STRUCTURE FOR FRONTEND 🎯🎯🎯")
                     print(f"   Relevancy Score: {company_analysis['relevancy_score']} (type: {type(company_analysis['relevancy_score'])})")
                     print(f"   All Keys: {list(company_analysis.keys())}")
-
+                    
                     return company_analysis
                 else:
                     print(f"⚠️ Company analysis is not a dict, creating new structure")
@@ -691,31 +663,19 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
 
     print(f"🚀🚀🚀 STARTING EMAIL PROCESSING WITH CONTEXT 🚀🚀🚀")
     print(f"📧 Processing {len(emails)} emails")
-    print(f"🎯 Domain context: '{domain_context[:100]}...'")
+    print(f"🎯 Domain context: '{domain_context[:100]}{'...' if len(domain_context) > 100 else ''}'")
     print(f"🔑 OAuth token: {'PRESENT' if oauth_token else 'MISSING'}")
     logger.info(f"🚀 Starting to process {len(emails)} emails with context: '{domain_context[:50]}...'")
-
+    
     if not domain_context or not domain_context.strip():
         print(f"⚠️⚠️⚠️ DOMAIN CONTEXT IS EMPTY - RELEVANCY WILL BE 50%")
     else:
         print(f"✅ DOMAIN CONTEXT PROVIDED: {len(domain_context)} characters")
-
-    # Process emails in smaller batches to avoid overwhelming the API
-    batch_size = 3  # Reduced from 5 for better performance
-    results = []
-
-    for i in range(0, len(emails), batch_size):
-        batch = emails[i:i + batch_size]
-        print(f"🔄 Processing batch {i//batch_size + 1} with {len(batch)} emails")
-
-        tasks = [process_single_email_with_context(email) for email in batch]
-        batch_results = await asyncio.gather(*tasks, return_exceptions=True)
-        results.extend(batch_results)
-
-        # Small delay between batches to prevent rate limiting
-        if i + batch_size < len(emails):
-            await asyncio.sleep(0.5)
-
+    
+    # Process all emails concurrently
+    tasks = [process_single_email_with_context(email) for email in emails]
+    print(f"🔄 Created {len(tasks)} processing tasks")
+    results = await asyncio.gather(*tasks, return_exceptions=True)
     print(f"🔄 Completed asyncio.gather, got {len(results)} results")
 
     # Filter out None results and exceptions
@@ -736,11 +696,11 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
 
     print(f"🎯🎯🎯 PROCESSING COMPLETE! {len(valid_results)} emails processed successfully")
     logger.info(f"🎯 Processing complete! {len(valid_results)} emails processed successfully")
-
+    
     # Final debug print
     for i, result in enumerate(valid_results[:3]):  # Show first 3 results
         print(f"📊 RESULT {i+1}: Company={result.get('company_name')}, Relevancy={result.get('relevancy_score')}, Credibility={result.get('credibility_score')}")
-
+    
     return valid_results
 
 
@@ -866,7 +826,7 @@ async def start_parsing(request: Request):
         print(f"   - Emails to process: {len(raw_emails)}")
         print(f"   - Domain context: '{domain_context[:50]}{'...' if len(domain_context) > 50 else ''}'")
         print(f"   - OAuth token: {'PRESENT' if oauth_token else 'MISSING'}")
-
+        
         # Force call the relevancy-aware function
         processed_results = await process_emails_with_context(raw_emails, domain_context, oauth_token)
 

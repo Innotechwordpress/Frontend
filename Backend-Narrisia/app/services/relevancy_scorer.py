@@ -23,51 +23,44 @@ async def calculate_relevancy_score(email_content: dict, company_info: str, doma
         }
     
     try:
-        client = AsyncOpenAI(api_key=openai_api_key, http_client=httpx.AsyncClient(timeout=15.0))
+        client = AsyncOpenAI(api_key=openai_api_key, http_client=httpx.AsyncClient(timeout=30.0))
 
         # Extract email details safely
         subject = email_content.get('subject', 'No Subject') if isinstance(email_content, dict) else 'No Subject'
         body = email_content.get('body', email_content.get('snippet', 'No content')) if isinstance(email_content, dict) else str(email_content)
         
-        print(f"📧📧📧 RELEVANCY SCORER EMAIL DATA CHECK 📧📧📧")
-        print(f"   Email content type: {type(email_content)}")
-        print(f"   Email content keys: {list(email_content.keys()) if isinstance(email_content, dict) else 'Not a dict'}")
-        print(f"   Subject extracted: {subject}")
-        print(f"   Body extracted (first 300 chars): {body[:300]}")
-        print(f"   Company info: {company_info}")
-        print(f"📧📧📧 END RELEVANCY EMAIL DATA 📧📧📧")
-        
         prompt = f"""
-Analyze this specific email's relevance to the user's business context.
+You are a business relevancy analyst. Analyze how relevant this email is to the user's business context.
 
-User's Business Context: "{domain_context}"
+User's Business Context:
+"{domain_context}"
 
-THIS SPECIFIC EMAIL:
+Email Information:
 Company: {company_info}
 Subject: {subject}
-Email Content: {body[:1500]}
+Email Content: {body[:1000]}
 
-Rate relevance 0-100 based on:
-1. Industry alignment with user's business
-2. Business opportunity potential
-3. Professional vs personal nature
-4. Actionable value for user
+Calculate a relevancy score from 0-100 based on:
+1. Industry alignment (does the sender's business align with user's industry?)
+2. Business opportunity (partnership, sales, procurement, etc.)
+3. Professional relevance (is this business-related vs spam/personal?)
+4. Potential value (could this lead to meaningful business outcomes?)
 
-Return ONLY this JSON:
+Return ONLY valid JSON in this exact format:
 {{
-  "relevancy_score": [0-100 number],
-  "relevancy_explanation": "[Specific reason why this email got this score - mention actual email content]",
-  "relevancy_confidence": [0.0-1.0]
+  "relevancy_score": 85,
+  "relevancy_explanation": "High relevance due to industry alignment and potential partnership opportunity",
+  "relevancy_confidence": 0.9
 }}
 
-Score ranges:
-- 90-100: Highly relevant (direct business match)
-- 70-89: Very relevant (strong business connection)
-- 50-69: Moderately relevant (some business value)
-- 30-49: Low relevance (minimal connection)
-- 0-29: Not relevant (spam/personal/unrelated)
+Score Guidelines:
+- 90-100: Highly relevant (direct industry match, clear business opportunity)
+- 70-89: Very relevant (related industry or clear business value)
+- 50-69: Moderately relevant (some business potential)
+- 30-49: Low relevance (minimal business connection)
+- 0-29: Not relevant (spam, personal, or unrelated)
 
-CRITICAL: Base your explanation on the ACTUAL email content above, not generic assumptions.
+IMPORTANT: Always return a valid number between 0-100 for relevancy_score.
 """
 
         print(f"🚀🚀🚀 STARTING RELEVANCY CALCULATION 🚀🚀🚀")
@@ -79,10 +72,10 @@ CRITICAL: Base your explanation on the ACTUAL email content above, not generic a
         print(f"🔑 API Key present: {bool(openai_api_key)}")
         
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",  # Faster and cheaper model
+            model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            max_tokens=200  # Reduced token limit
+            max_tokens=300
         )
 
         result = response.choices[0].message.content.strip()
