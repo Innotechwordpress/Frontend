@@ -731,6 +731,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Starting email parsing and credibility analysis for user:", user.email);
+      console.log("Request body:", req.body);
 
       // Check if we have stored OAuth tokens in session
       const accessToken = req.session.accessToken;
@@ -742,22 +743,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Try to fetch processed emails from FastAPI
+      // Extract domain context from request body
+      const domainContext = req.body?.domain_context || '';
+      console.log("Domain context received:", domainContext);
+
+      // Call the CORRECT FastAPI endpoint with domain context
       try {
         const fastApiResponse = await fetch(
-          "http://localhost:5000/fetch/processed",
+          "http://localhost:5000/fetch/start-parsing",
           {
-            method: "GET",
+            method: "POST",
             headers: {
               "Content-Type": "application/json",
               "oauth-token": accessToken,
             },
+            body: JSON.stringify({
+              domain_context: domainContext
+            })
           },
         );
 
         if (fastApiResponse.ok) {
           const processedData = await fastApiResponse.json();
-          console.log("Successfully fetched processed emails and credibility from FastAPI:", processedData);
+          console.log("Successfully fetched processed emails with relevancy from FastAPI:", processedData);
 
           // Format the response for dashboard
           const emails = processedData.emails || [];
