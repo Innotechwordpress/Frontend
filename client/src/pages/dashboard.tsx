@@ -464,7 +464,7 @@ export default function Dashboard() {
                                   Credibility: {credibilityData?.credibility_score?.toFixed(1) || 'N/A'}
                                 </Badge>
                                 <Badge variant="outline" className="border-purple-400 text-purple-400 text-xs">
-                                  Relevancy: {credibilityData?.relevancy_score !== undefined && credibilityData?.relevancy_score !== null ? `${credibilityData.relevancy_score.toFixed(1)}%` : 'N/A'}
+                                  Relevancy: {credibilityData?.relevancy_score !== undefined && credibilityData?.relevancy_score !== null ? `${(typeof credibilityData.relevancy_score === 'number' && credibilityData.relevancy_score <= 1 ? credibilityData.relevancy_score * 100 : credibilityData.relevancy_score).toFixed(1)}%` : 'N/A'}
                                 </Badge>
                                 <Badge variant="outline" className="border-blue-400 text-blue-400 text-xs">
                                   {credibilityData?.intent || credibilityData?.email_intent || 'Unknown Intent'}

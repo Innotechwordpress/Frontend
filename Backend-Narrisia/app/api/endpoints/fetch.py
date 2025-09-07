@@ -589,8 +589,9 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
                     })
                     print(f"🔥 FINAL COMPANY ANALYSIS UPDATE:")
                     print(f"   Company: {company_analysis.get('company_name', 'Unknown')}")
-                    print(f"   Relevancy: {relevancy_score}%")
+                    print(f"   Relevancy: {relevancy_score}% (type: {type(relevancy_score)})")
                     print(f"   Credibility: {company_analysis.get('credibility_score', 'N/A')}")
+                    print(f"   Full relevancy data: {relevancy_score}, {relevancy_explanation[:50]}...")
                 else:
                     # If company_analysis is not a dict, create a new structure
                     company_analysis = {

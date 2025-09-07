@@ -77,7 +77,7 @@ Score Guidelines:
         print(f"🎯 Confidence: {parsed.get('relevancy_confidence', 0.5)}")
         
         return {
-            "relevancy_score": relevancy_score,  # Return as 0-100 scale (percentage)
+            "relevancy_score": float(relevancy_score),  # Ensure it's a float in 0-100 scale
             "relevancy_explanation": parsed.get('relevancy_explanation', 'No explanation provided'),
             "relevancy_confidence": max(0, min(1, parsed.get('relevancy_confidence', 0.5)))
         }
@@ -86,7 +86,7 @@ Score Guidelines:
         print("❌ JSON parsing failed for relevancy:", str(json_err))
         print(f"❌ Failed content: {result[:500]}...")
         return {
-            "relevancy_score": 50,
+            "relevancy_score": 50.0,
             "relevancy_explanation": f"Failed to parse relevancy analysis: {str(json_err)}",
             "relevancy_confidence": 0.0
         }
@@ -94,7 +94,7 @@ Score Guidelines:
     except Exception as e:
         print("⚠️ OpenAI relevancy call failed:", str(e))
         return {
-            "relevancy_score": 50,
+            "relevancy_score": 50.0,
             "relevancy_explanation": f"Error calculating relevancy: {str(e)}",
             "relevancy_confidence": 0.0
         }
