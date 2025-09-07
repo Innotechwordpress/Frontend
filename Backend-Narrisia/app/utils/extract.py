@@ -348,11 +348,70 @@ def _is_likely_company_name(name: str) -> bool:
 
 # Legacy function for backward compatibility
 def extract_domain_as_company_name(sender: str) -> str:
-    """Legacy function - now uses content analysis"""
-    result = extract_company_name_from_email_content(sender)
-    if isinstance(result, dict):
-        return result["company_name"]
-    return result
+    """Legacy function - extract company from sender domain"""
+    # Extract email from sender
+    email_match = re.search(r'<([^>]+)>', sender)
+    email = email_match.group(1) if email_match else sender.strip()
+
+    # Extract domain from email
+    if "@" in email:
+        domain = email.split("@")[1].lower()
+
+        # Known company domains mapping
+        known_company_domains = {
+            "2coms.com": "2COMS",
+            "linkedin.com": "LinkedIn",
+            "github.com": "GitHub",
+            "google.com": "Google",
+            "microsoft.com": "Microsoft",
+            "apple.com": "Apple",
+            "amazon.com": "Amazon",
+            "meta.com": "Meta",
+            "facebook.com": "Meta",
+            "twitter.com": "Twitter",
+            "indeed.com": "Indeed",
+            "glassdoor.com": "Glassdoor",
+            "monster.com": "Monster",
+            "naukri.com": "Naukri",
+            "internshala.com": "Internshala",
+            "wellfound.com": "Wellfound",
+            "angellist.com": "Wellfound",
+            "stripe.com": "Stripe",
+            "paypal.com": "PayPal",
+            "shopify.com": "Shopify",
+            "salesforce.com": "Salesforce",
+            "hubspot.com": "HubSpot",
+            "slack.com": "Slack",
+            "zoom.us": "Zoom",
+            "dropbox.com": "Dropbox",
+            "atlassian.com": "Atlassian",
+            "netflix.com": "Netflix",
+            "spotify.com": "Spotify",
+            "uber.com": "Uber",
+            "lyft.com": "Lyft",
+            "airbnb.com": "Airbnb",
+            "krishtechnolabs.com": "Krish Technolabs",
+            "kekamail.com": "Unknown"
+        }
+
+        # Check known domains
+        for known_domain, company_name in known_company_domains.items():
+            if domain.endswith(known_domain):
+                if company_name != "Unknown":
+                    return company_name
+
+        # For unknown domains, extract main part
+        domain_parts = domain.split(".")
+        if len(domain_parts) >= 2:
+            main_domain = domain_parts[-2]
+            if main_domain.lower() == "gmail":
+                return "Personal Gmail"
+            elif main_domain.lower() in ["outlook", "hotmail"]:
+                return "Personal Outlook"
+            else:
+                return main_domain.capitalize()
+
+    return "Unknown"
 
 # ✅ Batch extractor — uses the above
 def extract_company_names(emails):

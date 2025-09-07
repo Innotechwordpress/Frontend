@@ -448,11 +448,21 @@ async def extract_company_name(email):
     sender = email.get("sender", "")
     subject = email.get("subject", "")
     body = email.get("body", "") or email.get("snippet", "")
+    
+    print(f"🔍 EXTRACT_COMPANY_NAME INPUT:")
+    print(f"   Sender: {sender}")
+    print(f"   Subject: {subject}")
+    print(f"   Body preview: {body[:100] if body else 'No body'}")
+    
     from app.utils.extract import extract_company_name_from_email_content
     company_result = extract_company_name_from_email_content(
         sender=sender, subject=subject, body=body, email_data=email
     )
-    return company_result["company_name"]
+    
+    company_name = company_result["company_name"] if isinstance(company_result, dict) else str(company_result)
+    print(f"   Extracted company: {company_name}")
+    
+    return company_name
 
 # Helper function to analyze company with relevancy scoring
 async def analyze_company_with_relevancy(company_name, email, domain_context, openai_api_key):
