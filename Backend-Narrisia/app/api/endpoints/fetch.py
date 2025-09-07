@@ -124,6 +124,9 @@ async def process_single_email(email, settings, oauth_token):
             logging.warning(f"Failed to parse OpenAI response for {company_name}: {e}")
             logging.warning(f"Raw response: {raw_text[:200]}...")
 
+            # Initialize company_analysis for fallback
+            company_analysis = {}
+            
             # Generate better fallback based on company name
             credibility_score = 75  # Default
             if company_name.lower() in ["indeed", "stripe", "google", "microsoft", "amazon", "linkedin"]:
@@ -185,6 +188,9 @@ async def process_single_email(email, settings, oauth_token):
         except Exception as e:
             logging.error(f"❌ Failed to analyze email for {company_name}: {e}")
 
+            # Initialize company_analysis for fallback
+            company_analysis = {}
+            
             # Generate credibility score based on company recognition
             credibility_score = 60  # Default
             if company_name.lower() in ["indeed", "stripe", "google", "microsoft", "amazon", "linkedin"]:
@@ -549,13 +555,28 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
             if company_analysis:
                 logger.info(f"✅ Successfully analyzed email from {company_name}")
 
-                # Calculate relevancy score using the dedicated service
-                relevancy_result = await calculate_relevancy_score(
-                    email_content=email,
-                    company_info=company_name,
-                    domain_context=domain_context,
-                    openai_api_key=os.getenv("OPENAI_API_KEY")
-                )
+                # Calculate relevancy score using the dedicated service only if domain context is provided
+                if domain_context and domain_context.strip():
+                    try:
+                        relevancy_result = await calculate_relevancy_score(
+                            email_content=email,
+                            company_info=company_name,
+                            domain_context=domain_context,
+                            openai_api_key=os.getenv("OPENAI_API_KEY")
+                        )
+                        relevancy_score = relevancy_result.get('relevancy_score', 50) / 100.0  # Convert to 0-1 scale
+                        relevancy_explanation = relevancy_result.get('relevancy_explanation', '')
+                        relevancy_confidence = relevancy_result.get('relevancy_confidence', 0.0)
+                        logger.info(f"✅ Relevancy score calculated: {relevancy_result.get('relevancy_score', 0)}%")
+                    except Exception as relevancy_error:
+                        logger.error(f"❌ Relevancy calculation failed: {relevancy_error}")
+                        relevancy_score = 0.5  # Default neutral score
+                        relevancy_explanation = "Relevancy calculation failed"
+                        relevancy_confidence = 0.0
+                else:
+                    relevancy_score = 0.5  # Default neutral score when no context provided
+                    relevancy_explanation = "No domain context provided"
+                    relevancy_confidence = 0.0
 
                 # Add email details and relevancy score to the analysis
                 company_analysis.update({
@@ -563,9 +584,9 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
                     'subject': email.get('subject', 'No Subject'),
                     'body': email.get('body', email.get('snippet', '')),
                     'sender_domain': email.get('sender', '').split('@')[-1].split('>')[0] if '@' in email.get('sender', '') else '',
-                    'relevancy_score': relevancy_result.get('relevancy_score', 0) / 100.0,  # Convert to 0-1 scale
-                    'relevancy_explanation': relevancy_result.get('relevancy_explanation', ''),
-                    'relevancy_confidence': relevancy_result.get('relevancy_confidence', 0.0)
+                    'relevancy_score': relevancy_score,
+                    'relevancy_explanation': relevancy_explanation,
+                    'relevancy_confidence': relevancy_confidence
                 })
 
                 logger.info(f"✅ Relevancy score calculated: {relevancy_result.get('relevancy_score', 0)}%")
@@ -590,26 +611,28 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
 
 
 @router.post("/start-parsing", response_model=Dict)
-async def start_parsing(request_data: Dict = None):
+async def start_parsing(request: Request):
     """Start parsing emails with comprehensive analysis and relevancy scoring"""
+    
     # Extract OAuth token from Authorization header or oauth-token header
     oauth_token = None
-    request_obj = Request(scope={"type": "http", "headers": request_data.get("headers", {}).items()}) # Mock request object
-
-    auth_header = request_obj.headers.get("Authorization")
+    
+    auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         oauth_token = auth_header.split("Bearer ")[1]
 
     if not oauth_token:
-        oauth_token = request_obj.headers.get("oauth-token")
+        oauth_token = request.headers.get("oauth-token")
 
     if not oauth_token:
         raise HTTPException(status_code=401, detail="OAuth token required")
 
     # Extract domain context from request body
-    domain_context = ""
-    if request_data and isinstance(request_data, dict):
-        domain_context = request_data.get('domain_context', '')
+    try:
+        request_body = await request.json()
+        domain_context = request_body.get('domain_context', '') if request_body else ''
+    except:
+        domain_context = ''
 
     logger.info(f"🎯 Starting email parsing with domain context: '{domain_context[:50]}{'...' if len(domain_context) > 50 else ''}'")
 
