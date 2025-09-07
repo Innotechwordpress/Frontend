@@ -66,10 +66,10 @@ export const useProgressLoader = () => {
 
   const completeProgress = useCallback(() => {
     setProgress(100);
-    setCurrentStep('Complete!');
+    setCurrentStep('Processing complete!');
     setTimeout(() => {
       setIsLoading(false);
-    }, 300);
+    }, 800); // Slightly longer delay to show completion
   }, []);
 
   return {

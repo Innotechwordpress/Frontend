@@ -184,17 +184,20 @@ export default function Dashboard() {
   const handleParseEmails = async () => {
     resetProgress(); // Reset progress before starting
 
-    // Define initial progress steps for UI feedback
-    const initialSteps = [
-      { id: 'connecting', label: 'Connecting to email server...', duration: 500 },
-      { id: 'fetching', label: 'Fetching unread emails...', duration: 1000 },
-      { id: 'parsing', label: 'Processing emails with AI...', duration: 1500 }
+    // Define progress steps that better match actual processing time
+    const progressSteps = [
+      { id: 'connecting', label: 'Connecting to email server...', duration: 1000 },
+      { id: 'fetching', label: 'Fetching unread emails...', duration: 2000 },
+      { id: 'extracting', label: 'Extracting company information...', duration: 8000 },
+      { id: 'analyzing', label: 'Analyzing company credibility...', duration: 12000 },
+      { id: 'classifying', label: 'Classifying email intent...', duration: 8000 },
+      { id: 'finalizing', label: 'Finalizing results...', duration: 2000 }
     ];
 
     try {
-      // Start initial progress animation
-      startProgress(initialSteps, () => {
-        console.log('Initial steps completed, waiting for API...');
+      // Start progress animation that matches actual processing time
+      startProgress(progressSteps, () => {
+        console.log('Progress animation completed');
       });
 
       // Fetch emails with progress indication
