@@ -319,84 +319,83 @@ export default function Dashboard() {
         )}
 
 
-        {/* Domain Relevancy Input Section */}
-        <div className="mb-8">
-          <Card className="bg-gray-900 border-gray-800">
-            <CardHeader>
-              <CardTitle className="text-blue-400 flex items-center gap-2">
-                <Target className="w-5 h-5" />
-                Domain Relevancy Configuration
-              </CardTitle>
-              <CardDescription>
-                Define your business context to get relevancy scores for incoming emails
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="domainContext" className="text-white font-medium">
-                    Business Context
-                  </Label>
-                  <textarea
-                    id="domainContext"
-                    value={domainContext}
-                    onChange={(e) => setDomainContext(e.target.value)}
-                    className="w-full min-h-[100px] px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
-                    placeholder="Example: I am a CEO of a plastic packaging industry focused on sustainable solutions for food and beverage companies. I'm interested in partnerships, technology innovations, and business expansion opportunities."
-                  />
-                  <p className="text-sm text-gray-400">
-                    Describe your role, industry, and interests. This helps the AI calculate how relevant each email is to your business.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {canStartParsing ? (
-                    <div className="flex items-center gap-2 text-green-400">
-                      <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                      <span className="text-sm">Ready to parse with relevancy scoring</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-orange-400">
-                      <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
-                      <span className="text-sm">Please provide business context to enable parsing</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Email Research & Classification Section */}
+        {/* AI Email Analysis with Domain Relevancy */}
         <div className="mb-8">
           <Card className="bg-gray-900 border-gray-800">
             <CardHeader>
               <CardTitle className="text-green-400 flex items-center gap-2">
                 <Brain className="w-5 h-5" />
-                Email Company Research & Classification
+                AI Email Analysis with Domain Relevancy
               </CardTitle>
               <CardDescription>
-                AI-powered email analysis and company intelligence with domain relevancy scoring
+                Define your business context and analyze emails with AI-powered company intelligence and relevancy scoring
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <Button
-                  className={`px-6 py-2 rounded-md flex items-center gap-2 ${
-                    canStartParsing 
-                      ? "bg-red-500 hover:bg-red-600 text-white" 
-                      : "bg-gray-600 cursor-not-allowed text-gray-400"
-                  }`}
-                  onClick={handleParseEmails}
-                  disabled={isProgressLoading || !canStartParsing}
-                >
-                  <Zap className="w-4 h-4" />
-                  Start Parsing
-                </Button>
-                {!canStartParsing && (
-                  <p className="text-sm text-gray-400">
-                    Please provide your business context above to enable email parsing with relevancy scoring.
-                  </p>
-                )}
+              <div className="space-y-6">
+                {/* Business Context Input */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="domainContext" className="text-white font-medium flex items-center gap-2">
+                      <Target className="w-4 h-4" />
+                      Your Business Context
+                    </Label>
+                    <textarea
+                      id="domainContext"
+                      value={domainContext}
+                      onChange={(e) => setDomainContext(e.target.value)}
+                      className="w-full min-h-[100px] px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+                      placeholder="Example: I am a CEO of a plastic packaging industry focused on sustainable solutions for food and beverage companies. I'm interested in partnerships, technology innovations, and business expansion opportunities."
+                    />
+                    <p className="text-sm text-gray-400">
+                      Describe your role, industry, and interests. This helps the AI calculate how relevant each email is to your business.
+                    </p>
+                  </div>
+                  
+                  {/* Status Indicator */}
+                  <div className="flex items-center gap-2">
+                    {canStartParsing ? (
+                      <div className="flex items-center gap-2 text-green-400">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-sm">Business context ready • AI analysis enabled</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-orange-400">
+                        <div className="w-2 h-2 bg-orange-400 rounded-full"></div>
+                        <span className="text-sm">Enter your business context to enable AI analysis</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Parsing Action */}
+                <div className="border-t border-gray-700 pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-white font-medium mb-1">Start AI Analysis</h4>
+                      <p className="text-sm text-gray-400">
+                        Analyze {unreadCount} emails with company research and relevancy scoring
+                      </p>
+                    </div>
+                    <Button
+                      className={`px-6 py-2 rounded-md flex items-center gap-2 ${
+                        canStartParsing 
+                          ? "bg-green-600 hover:bg-green-700 text-white" 
+                          : "bg-gray-600 cursor-not-allowed text-gray-400"
+                      }`}
+                      onClick={handleParseEmails}
+                      disabled={isProgressLoading || !canStartParsing}
+                    >
+                      <Brain className="w-4 h-4" />
+                      {isProgressLoading ? "Analyzing..." : "Start AI Analysis"}
+                    </Button>
+                  </div>
+                  {!canStartParsing && (
+                    <p className="text-sm text-yellow-400 mt-2">
+                      ⚠️ Please provide your business context above to enable AI analysis with relevancy scoring.
+                    </p>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

@@ -588,8 +588,6 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
                     'relevancy_explanation': relevancy_explanation,
                     'relevancy_confidence': relevancy_confidence
                 })
-
-                logger.info(f"✅ Relevancy score calculated: {relevancy_result.get('relevancy_score', 0)}%")
                 
                 return company_analysis
             else:
@@ -609,6 +607,65 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
 
     return valid_results
 
+
+@router.post("/validate-context", response_model=Dict)
+async def validate_domain_context(request: Request):
+    """Validate domain context with OpenAI before allowing parsing"""
+    try:
+        request_body = await request.json()
+        domain_context = request_body.get('domain_context', '').strip()
+        
+        if not domain_context:
+            return {
+                "valid": False,
+                "message": "Domain context is required"
+            }
+        
+        # Test the context with OpenAI to ensure it's valid
+        from openai import AsyncOpenAI
+        import httpx
+        
+        client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"), http_client=httpx.AsyncClient(timeout=15.0))
+        
+        test_prompt = f"""
+        Please analyze this business context and confirm if it's suitable for email relevancy scoring:
+        
+        "{domain_context}"
+        
+        Return JSON with:
+        {{
+          "valid": true/false,
+          "business_type": "brief description",
+          "message": "explanation"
+        }}
+        """
+        
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": test_prompt}],
+            temperature=0.3,
+            max_tokens=150
+        )
+        
+        raw_text = response.choices[0].message.content.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+        
+        result = json.loads(raw_text)
+        
+        return {
+            "valid": result.get("valid", True),
+            "business_type": result.get("business_type", "Business"),
+            "message": result.get("message", "Context validated successfully"),
+            "ready_for_parsing": True
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error validating context: {e}")
+        return {
+            "valid": False,
+            "message": f"Validation failed: {str(e)}"
+        }
 
 @router.post("/start-parsing", response_model=Dict)
 async def start_parsing(request: Request):

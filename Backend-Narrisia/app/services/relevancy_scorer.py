@@ -57,6 +57,7 @@ Score Guidelines:
         )
 
         result = response.choices[0].message.content.strip()
+        print(f"🔍 Raw relevancy response: {result[:200]}...")
         
         # Strip code block markers
         cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", result.strip(), flags=re.IGNORECASE)
@@ -67,6 +68,8 @@ Score Guidelines:
         # Ensure score is within bounds
         relevancy_score = max(0, min(100, parsed.get('relevancy_score', 50)))
         
+        print(f"✅ Parsed relevancy score: {relevancy_score}")
+        
         return {
             "relevancy_score": relevancy_score,
             "relevancy_explanation": parsed.get('relevancy_explanation', 'No explanation provided'),
@@ -75,6 +78,7 @@ Score Guidelines:
 
     except json.JSONDecodeError as json_err:
         print("❌ JSON parsing failed for relevancy:", str(json_err))
+        print(f"❌ Failed content: {result[:500]}...")
         return {
             "relevancy_score": 50,
             "relevancy_explanation": f"Failed to parse relevancy analysis: {str(json_err)}",
