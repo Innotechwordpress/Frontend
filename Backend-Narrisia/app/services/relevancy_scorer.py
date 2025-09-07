@@ -38,37 +38,36 @@ async def calculate_relevancy_score(email_content: dict, company_info: str, doma
         print(f"📧📧📧 END RELEVANCY EMAIL DATA 📧📧📧")
         
         prompt = f"""
-You are a business relevancy analyst. Analyze how relevant this email is to the user's business context.
+Analyze this specific email's relevance to the user's business context.
 
-User's Business Context:
-"{domain_context}"
+User's Business Context: "{domain_context}"
 
-Email Information:
+THIS SPECIFIC EMAIL:
 Company: {company_info}
 Subject: {subject}
-Email Content: {body[:1000]}
+Email Content: {body[:1500]}
 
-Calculate a relevancy score from 0-100 based on:
-1. Industry alignment (does the sender's business align with user's industry?)
-2. Business opportunity (partnership, sales, procurement, etc.)
-3. Professional relevance (is this business-related vs spam/personal?)
-4. Potential value (could this lead to meaningful business outcomes?)
+Rate relevance 0-100 based on:
+1. Industry alignment with user's business
+2. Business opportunity potential
+3. Professional vs personal nature
+4. Actionable value for user
 
-Return ONLY valid JSON in this exact format:
+Return ONLY this JSON:
 {{
-  "relevancy_score": 85,
-  "relevancy_explanation": "High relevance due to industry alignment and potential partnership opportunity",
-  "relevancy_confidence": 0.9
+  "relevancy_score": [0-100 number],
+  "relevancy_explanation": "[Specific reason why this email got this score - mention actual email content]",
+  "relevancy_confidence": [0.0-1.0]
 }}
 
-Score Guidelines:
-- 90-100: Highly relevant (direct industry match, clear business opportunity)
-- 70-89: Very relevant (related industry or clear business value)
-- 50-69: Moderately relevant (some business potential)
-- 30-49: Low relevance (minimal business connection)
-- 0-29: Not relevant (spam, personal, or unrelated)
+Score ranges:
+- 90-100: Highly relevant (direct business match)
+- 70-89: Very relevant (strong business connection)
+- 50-69: Moderately relevant (some business value)
+- 30-49: Low relevance (minimal connection)
+- 0-29: Not relevant (spam/personal/unrelated)
 
-IMPORTANT: Always return a valid number between 0-100 for relevancy_score.
+CRITICAL: Base your explanation on the ACTUAL email content above, not generic assumptions.
 """
 
         print(f"🚀🚀🚀 STARTING RELEVANCY CALCULATION 🚀🚀🚀")

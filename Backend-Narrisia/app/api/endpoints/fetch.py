@@ -64,52 +64,44 @@ async def process_single_email(email, settings, oauth_token=""):
         print(f"🔍🔍🔍 END EMAIL DEBUG 🔍🔍🔍")
 
         prompt = f"""
-        You are a business analyst. Analyze the email below and provide a comprehensive JSON response with realistic estimates.
+        Analyze this specific email and provide accurate analysis based on its ACTUAL content.
 
-        ACTUAL EMAIL TO ANALYZE:
+        EMAIL CONTENT TO ANALYZE:
         From: {sender}
         Subject: {subject}
-        Body: {body[:1500]}
+        Body: {body[:2000]}
 
-        Company extracted from sender: {company_name}
+        Company: {company_name}
 
-        CRITICAL INSTRUCTIONS FOR EMAIL_SUMMARY:
-        1. Read the ACTUAL email content above carefully
-        2. The email_summary must describe EXACTLY what this specific email says
-        3. DO NOT make up content or use generic descriptions
-        4. If the email is about repair scheduling, say "repair scheduling"
-        5. If the email is about food delivery survey, say "food delivery survey"
-        6. If the email is about job applications, say "job application"
-        7. NEVER use generic phrases like "acknowledging purchase order" unless that's actually in the email
+        CRITICAL: Read the email content above and create an email_summary that describes EXACTLY what this email is about.
 
-        EXAMPLE - If email says "repair scheduled for 20-09-2025", then email_summary should be "Confirmation of repair and maintenance scheduling for assembly line on 20-09-2025"
+        Examples of good email summaries:
+        - If email is about repair: "Confirmation of repair and maintenance scheduling for assembly line on [date]"
+        - If email is about surveys: "Customer feedback survey request for [service]"
+        - If email is about meetings: "Meeting invitation for [topic] on [date]"
+        - If email is about orders: "Purchase order confirmation for [items]"
 
-        For company analysis, use realistic estimates based on {company_name}:
-        - Large tech companies: market_cap: 50000000000-500000000000, credibility: 90-95
-        - Medium companies: market_cap: 100000000-5000000000, credibility: 75-85
-        - Small/Personal: market_cap: 10000000-100000000, credibility: 60-75
-
-        Return ONLY this JSON structure with email_summary based on ACTUAL email content:
+        Return ONLY this JSON:
         {{
             "company_analysis": {{
                 "company_name": "{company_name}",
-                "industry": "<industry based on email content and company>",
-                "credibility_score": <0-100 realistic score>,
-                "employee_count": <realistic estimate>,
-                "founded_year": <realistic year>,
-                "business_verified": <true/false>,
-                "market_cap": <realistic number or 0>,
-                "revenue": <realistic number or 0>,
-                "funding_status": "<bootstrapped/seed/series_a/etc>",
+                "industry": "Technology",
+                "credibility_score": 75,
+                "employee_count": 500,
+                "founded_year": 2015,
+                "business_verified": true,
+                "market_cap": 500000000,
+                "revenue": 75000000,
+                "funding_status": "Private",
                 "is_personal_email": {is_personal_email}
             }},
-            "email_intent": "<intent based on ACTUAL email content>",
-            "email_summary": "<Summary based on ACTUAL email subject and body - describe what the email actually says, not a generic template>",
-            "company_gist": "<brief description of company>",
-            "intent_confidence": <0.0-1.0>
+            "email_intent": "business_inquiry",
+            "email_summary": "MUST describe what THIS specific email actually says - read the subject and body above",
+            "company_gist": "Brief company description",
+            "intent_confidence": 0.8
         }}
 
-        IMPORTANT: The email_summary MUST reflect the actual content of this specific email. Read the subject "{subject}" and body content carefully.
+        MANDATORY: email_summary must be unique and specific to this email's actual content, not a generic template.
         """
 
         response = await client.chat.completions.create(
