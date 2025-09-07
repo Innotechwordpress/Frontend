@@ -540,23 +540,28 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
     async def process_single_email_with_context(email):
         try:
             sender = email.get('sender', 'Unknown')
+            print(f"🔥 PROCESSING EMAIL: {sender[:50]}...")
             logger.info(f"📧 Processing: {sender}...")
 
             # Extract company information
             company_name = await extract_company_name(email)
+            print(f"🏢 COMPANY EXTRACTED: {company_name}")
             logger.info(f"✅ Company found from email content: {company_name}")
 
             # Get basic company analysis using the working function
             company_analysis = await process_single_email(email, settings, "")
 
             if company_analysis:
+                print(f"✅ BASIC ANALYSIS COMPLETE for {company_name}")
                 logger.info(f"✅ Successfully analyzed email from {company_name}")
 
                 # Calculate relevancy score ALWAYS if domain context is provided
                 if domain_context and domain_context.strip():
                     try:
-                        print(f"🔥 CALCULATING RELEVANCY for {company_name}")
-                        print(f"🎯 Domain context: {domain_context[:50]}...")
+                        print(f"🔥🔥🔥 STARTING RELEVANCY CALCULATION 🔥🔥🔥")
+                        print(f"🎯 Company: {company_name}")
+                        print(f"🎯 Domain context: {domain_context[:100]}...")
+                        print(f"🎯 Email subject: {email.get('subject', 'No Subject')}")
                         
                         relevancy_result = await calculate_relevancy_score(
                             email_content=email,
@@ -569,61 +574,76 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
                         relevancy_explanation = relevancy_result.get('relevancy_explanation', 'No explanation')
                         relevancy_confidence = relevancy_result.get('relevancy_confidence', 0.0)
                         
-                        print(f"🎯 FINAL RELEVANCY RESULT:")
+                        print(f"🎯🎯🎯 RELEVANCY CALCULATION COMPLETE 🎯🎯🎯")
                         print(f"   Company: {company_name}")
-                        print(f"   Score: {relevancy_score}%")
+                        print(f"   Score: {relevancy_score}% (type: {type(relevancy_score)})")
                         print(f"   Explanation: {relevancy_explanation[:100]}...")
+                        print(f"   Confidence: {relevancy_confidence}")
                         
-                        logger.info(f"✅ Relevancy score calculated: {relevancy_score}%")
+                        logger.info(f"✅ Relevancy score calculated: {relevancy_score}% for {company_name}")
                         
                     except Exception as relevancy_error:
+                        print(f"❌❌❌ RELEVANCY CALCULATION FAILED: {relevancy_error}")
                         logger.error(f"❌ Relevancy calculation failed: {relevancy_error}")
+                        import traceback
+                        traceback.print_exc()
                         relevancy_score = 50.0
                         relevancy_explanation = f"Relevancy calculation failed: {str(relevancy_error)}"
                         relevancy_confidence = 0.0
                 else:
-                    print(f"⚠️ No domain context provided for {company_name}")
+                    print(f"⚠️⚠️⚠️ NO DOMAIN CONTEXT PROVIDED for {company_name}")
                     relevancy_score = 50.0
                     relevancy_explanation = "No domain context provided"
                     relevancy_confidence = 0.0
 
-                # Update the existing company_analysis with relevancy data
+                # Ensure company_analysis is a dictionary and update with relevancy data
                 if isinstance(company_analysis, dict):
-                    company_analysis.update({
-                        'relevancy_score': float(relevancy_score),
-                        'relevancy_explanation': relevancy_explanation,
-                        'relevancy_confidence': float(relevancy_confidence)
-                    })
+                    # Force update relevancy fields
+                    company_analysis['relevancy_score'] = float(relevancy_score)
+                    company_analysis['relevancy_explanation'] = str(relevancy_explanation)
+                    company_analysis['relevancy_confidence'] = float(relevancy_confidence)
                     
-                    print(f"🔥 FINAL COMPANY ANALYSIS UPDATE:")
+                    print(f"🔥🔥🔥 FINAL COMPANY ANALYSIS UPDATE 🔥🔥🔥")
                     print(f"   Company: {company_analysis.get('company_name', 'Unknown')}")
-                    print(f"   Relevancy: {relevancy_score}% (type: {type(relevancy_score)})")
                     print(f"   Credibility: {company_analysis.get('credibility_score', 'N/A')}")
+                    print(f"   Relevancy: {company_analysis.get('relevancy_score', 'N/A')}% (type: {type(company_analysis.get('relevancy_score'))})")
+                    print(f"   Intent: {company_analysis.get('intent', 'Unknown')}")
+                    print(f"   Keys in analysis: {list(company_analysis.keys())}")
                     
                     return company_analysis
                 else:
+                    print(f"⚠️ Company analysis is not a dict, creating new structure")
                     # If company_analysis is not a dict, create a new structure
-                    return {
+                    new_analysis = {
                         'company_name': company_name,
                         'credibility_score': 75.0,
                         'relevancy_score': float(relevancy_score),
-                        'relevancy_explanation': relevancy_explanation,
+                        'relevancy_explanation': str(relevancy_explanation),
                         'relevancy_confidence': float(relevancy_confidence),
                         'sender': sender,
                         'subject': email.get('subject', 'No Subject'),
                         'body': email.get('body', email.get('snippet', '')),
-                        'sender_domain': sender.split('@')[-1].split('>')[0] if '@' in sender else 'Unknown'
+                        'sender_domain': sender.split('@')[-1].split('>')[0] if '@' in sender else 'Unknown',
+                        'intent': 'business_inquiry',
+                        'email_summary': f"Email from {company_name}"
                     }
+                    print(f"🔥 NEW ANALYSIS STRUCTURE: {new_analysis}")
+                    return new_analysis
             else:
+                print(f"❌ FAILED TO GET BASIC ANALYSIS for {company_name}")
                 logger.error(f"❌ Failed to analyze: {company_name}")
                 return None
 
         except Exception as e:
+            print(f"❌❌❌ EXCEPTION IN EMAIL PROCESSING: {str(e)}")
             logger.error(f"❌ Failed to process email: {str(e)}")
             import traceback
             traceback.print_exc()
             return None
 
+    print(f"🚀🚀🚀 STARTING EMAIL PROCESSING WITH CONTEXT 🚀🚀🚀")
+    print(f"📧 Processing {len(emails)} emails")
+    print(f"🎯 Domain context: '{domain_context[:100]}{'...' if len(domain_context) > 100 else ''}'")
     logger.info(f"🚀 Starting to process {len(emails)} emails with context: '{domain_context[:50]}...'")
     
     # Process all emails concurrently
@@ -634,14 +654,25 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
     valid_results = []
     for i, result in enumerate(results):
         if isinstance(result, Exception):
+            print(f"❌ Exception processing email {i}: {result}")
             logger.error(f"❌ Exception processing email {i}: {result}")
         elif result is not None:
-            logger.info(f"✅ Successfully processed email: {result.get('company_name', 'Unknown')} - Relevancy: {result.get('relevancy_score', 'N/A')}%")
+            relevancy_score = result.get('relevancy_score', 'N/A')
+            company_name = result.get('company_name', 'Unknown')
+            print(f"✅ SUCCESSFULLY PROCESSED: {company_name} - Relevancy: {relevancy_score}%")
+            logger.info(f"✅ Successfully processed email: {company_name} - Relevancy: {relevancy_score}%")
             valid_results.append(result)
         else:
+            print(f"⚠️ No result for email {i}")
             logger.warning(f"⚠️ No result for email {i}")
 
+    print(f"🎯🎯🎯 PROCESSING COMPLETE! {len(valid_results)} emails processed successfully")
     logger.info(f"🎯 Processing complete! {len(valid_results)} emails processed successfully")
+    
+    # Final debug print
+    for i, result in enumerate(valid_results[:3]):  # Show first 3 results
+        print(f"📊 RESULT {i+1}: Company={result.get('company_name')}, Relevancy={result.get('relevancy_score')}, Credibility={result.get('credibility_score')}")
+    
     return valid_results
 
 

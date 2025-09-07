@@ -57,9 +57,13 @@ Score Guidelines:
 IMPORTANT: Always return a valid number between 0-100 for relevancy_score.
 """
 
-        print(f"🚀 Starting relevancy calculation for company: {company_info}")
+        print(f"🚀🚀🚀 STARTING RELEVANCY CALCULATION 🚀🚀🚀")
+        print(f"🏢 Company: {company_info}")
         print(f"🎯 Domain context: {domain_context[:100]}...")
         print(f"📧 Email subject: {subject}")
+        print(f"📝 Email body preview: {body[:200]}...")
+        print(f"🤖 Model: {model}")
+        print(f"🔑 API Key present: {bool(openai_api_key)}")
         
         response = await client.chat.completions.create(
             model=model,
@@ -69,20 +73,34 @@ IMPORTANT: Always return a valid number between 0-100 for relevancy_score.
         )
 
         result = response.choices[0].message.content.strip()
-        print(f"🔍 Raw relevancy response: {result}")
+        print(f"🔍 Raw OpenAI relevancy response:")
+        print(f"📄 {result}")
         
         # Clean JSON response
+        original_result = result
         if result.startswith("```json"):
             result = result.replace("```json", "").replace("```", "").strip()
         elif result.startswith("```"):
             result = result.replace("```", "").strip()
         
+        print(f"🧹 Cleaned response: {result}")
+        
         # Parse JSON
-        parsed = json.loads(result)
+        try:
+            parsed = json.loads(result)
+            print(f"✅ JSON parsing successful: {parsed}")
+        except json.JSONDecodeError as json_err:
+            print(f"❌ JSON parsing failed: {json_err}")
+            print(f"❌ Original response: {original_result}")
+            print(f"❌ Cleaned response: {result}")
+            raise json_err
         
         # Ensure score is within bounds and is a valid number
         relevancy_score = parsed.get('relevancy_score', 50)
+        print(f"🎯 Raw relevancy score from API: {relevancy_score} (type: {type(relevancy_score)})")
+        
         if not isinstance(relevancy_score, (int, float)):
+            print(f"⚠️ Invalid relevancy score type, defaulting to 50")
             relevancy_score = 50
         relevancy_score = max(0, min(100, float(relevancy_score)))
         
@@ -92,16 +110,19 @@ IMPORTANT: Always return a valid number between 0-100 for relevancy_score.
             relevancy_confidence = 0.5
         relevancy_confidence = max(0, min(1, float(relevancy_confidence)))
         
-        print(f"✅ RELEVANCY CALCULATION SUCCESS!")
-        print(f"📊 Score: {relevancy_score}%")
+        print(f"✅✅✅ RELEVANCY CALCULATION SUCCESS! ✅✅✅")
+        print(f"📊 Final Score: {relevancy_score}% (type: {type(relevancy_score)})")
         print(f"💡 Explanation: {relevancy_explanation[:100]}...")
         print(f"🎯 Confidence: {relevancy_confidence}")
         
-        return {
+        final_result = {
             "relevancy_score": relevancy_score,
             "relevancy_explanation": relevancy_explanation,
             "relevancy_confidence": relevancy_confidence
         }
+        
+        print(f"📦 Final result object: {final_result}")
+        return final_result
 
     except json.JSONDecodeError as json_err:
         print(f"❌ JSON parsing failed for relevancy: {json_err}")
