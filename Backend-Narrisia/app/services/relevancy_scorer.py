@@ -23,7 +23,7 @@ async def calculate_relevancy_score(email_content: dict, company_info: str, doma
         }
     
     try:
-        client = AsyncOpenAI(api_key=openai_api_key, http_client=httpx.AsyncClient(timeout=30.0))
+        client = AsyncOpenAI(api_key=openai_api_key, http_client=httpx.AsyncClient(timeout=15.0))
 
         # Extract email details safely
         subject = email_content.get('subject', 'No Subject') if isinstance(email_content, dict) else 'No Subject'
@@ -79,10 +79,10 @@ CRITICAL: Base your explanation on the ACTUAL email content above, not generic a
         print(f"🔑 API Key present: {bool(openai_api_key)}")
         
         response = await client.chat.completions.create(
-            model=model,
+            model="gpt-4o-mini",  # Faster and cheaper model
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
-            max_tokens=300
+            max_tokens=200  # Reduced token limit
         )
 
         result = response.choices[0].message.content.strip()

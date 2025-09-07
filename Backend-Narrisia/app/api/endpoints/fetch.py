@@ -581,7 +581,7 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
 
             if company_analysis:
                 print(f"✅ BASIC ANALYSIS COMPLETE for {company_name}")
-                logger.info(f"✅ Successfully analyzed email from {company_name}")
+                logging.info(f"✅ Successfully analyzed email from {company_name}")
 
                 # Calculate relevancy score ALWAYS if domain context is provided
                 if domain_context and domain_context.strip():
@@ -691,7 +691,7 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
 
     print(f"🚀🚀🚀 STARTING EMAIL PROCESSING WITH CONTEXT 🚀🚀🚀")
     print(f"📧 Processing {len(emails)} emails")
-    print(f"🎯 Domain context: '{domain_context[:100]}{'...' if len(domain_context) > 100 else ''}'")
+    print(f"🎯 Domain context: '{domain_context[:100]}...'")
     print(f"🔑 OAuth token: {'PRESENT' if oauth_token else 'MISSING'}")
     logger.info(f"🚀 Starting to process {len(emails)} emails with context: '{domain_context[:50]}...'")
 
@@ -700,10 +700,22 @@ async def process_emails_with_context(emails: list, domain_context: str = "", oa
     else:
         print(f"✅ DOMAIN CONTEXT PROVIDED: {len(domain_context)} characters")
 
-    # Process all emails concurrently
-    tasks = [process_single_email_with_context(email) for email in emails]
-    print(f"🔄 Created {len(tasks)} processing tasks")
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    # Process emails in smaller batches to avoid overwhelming the API
+    batch_size = 3  # Reduced from 5 for better performance
+    results = []
+
+    for i in range(0, len(emails), batch_size):
+        batch = emails[i:i + batch_size]
+        print(f"🔄 Processing batch {i//batch_size + 1} with {len(batch)} emails")
+
+        tasks = [process_single_email_with_context(email) for email in batch]
+        batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+        results.extend(batch_results)
+
+        # Small delay between batches to prevent rate limiting
+        if i + batch_size < len(emails):
+            await asyncio.sleep(0.5)
+
     print(f"🔄 Completed asyncio.gather, got {len(results)} results")
 
     # Filter out None results and exceptions

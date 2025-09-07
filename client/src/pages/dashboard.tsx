@@ -30,6 +30,7 @@ export default function Dashboard() {
     type: 'subject' | 'credibility' | 'intent_summary';
     data: any;
   } | null>(null);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [domainContext, setDomainContext] = useState("");
   const [canStartParsing, setCanStartParsing] = useState(false);
   const { progress, currentStep, isLoading: isProgressLoading, startDynamicProgress, completeProgress, resetProgress } = useProgressLoader();
@@ -50,53 +51,32 @@ export default function Dashboard() {
   // Fetch unread emails when the component mounts or user changes
   useEffect(() => {
     if (user) {
-      // Fetch access token
-      fetch("/api/auth/get-token")
-        .then((res) => res.json())
-        .then((data) => {
-          setAccessToken(data.accessToken);
-        })
-        .catch((error) => {
-          console.error("Error fetching access token:", error);
-          toast({
-            title: "Error",
-            description: "Failed to retrieve authentication token.",
-            variant: "destructive",
-          });
+      setIsInitialLoading(true);
+      
+      // Fetch all data in parallel
+      Promise.all([
+        fetch("/api/auth/get-token").then(res => res.json()).catch(() => ({ accessToken: null })),
+        fetch("/api/emails/unread").then(res => res.json()).catch(() => ({ emails: [], count: 0, credibility_analysis: [] })),
+        fetch("/api/emails/weekly-count").then(res => res.json()).catch(() => ({ weekly_count: 0 }))
+      ])
+      .then(([tokenData, emailData, weeklyData]) => {
+        setAccessToken(tokenData.accessToken);
+        setUnreadEmails(emailData.emails || []);
+        setUnreadCount(emailData.count || 0);
+        setCredibilityAnalysis(emailData.credibility_analysis || []);
+        setWeeklyEmailCount(weeklyData.weekly_count || 0);
+      })
+      .catch((error) => {
+        console.error("Error fetching dashboard data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data.",
+          variant: "destructive",
         });
-
-      // Fetch unread emails
-      fetch("/api/emails/unread")
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("Dashboard received processed data:", data);
-          setUnreadEmails(data.emails || []);
-          setUnreadCount(data.count || 0);
-          setCredibilityAnalysis(data.credibility_analysis || []);
-        })
-        .catch((error) => {
-          console.error("Error fetching unread emails:", error);
-          toast({
-            title: "Error",
-            description: "Failed to fetch unread emails.",
-            variant: "destructive",
-          });
-          // Set empty state on error
-          setUnreadEmails([]);
-          setUnreadCount(0);
-        });
-
-      // Fetch weekly email count
-      fetch("/api/emails/weekly-count")
-        .then((res) => res.json())
-        .then((data) => {
-          console.log("Weekly email count received:", data);
-          setWeeklyEmailCount(data.weekly_count || 0);
-        })
-        .catch((error) => {
-          console.error("Error fetching weekly email count:", error);
-          setWeeklyEmailCount(0);
-        });
+      })
+      .finally(() => {
+        setIsInitialLoading(false);
+      });
     }
   }, [user, toast]);
 
@@ -105,12 +85,14 @@ export default function Dashboard() {
     setCanStartParsing(domainContext.trim().length > 0);
   }, [domainContext]);
 
-  if (isAuthLoading) {
+  if (isAuthLoading || isInitialLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
           <div className="w-8 h-8 border-2 border-green-400 border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-green-400 text-lg">Loading dashboard...</div>
+          <div className="text-green-400 text-lg">
+            {isAuthLoading ? "Loading dashboard..." : "Fetching your emails..."}
+          </div>
         </div>
       </div>
     );
