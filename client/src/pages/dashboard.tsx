@@ -184,16 +184,20 @@ export default function Dashboard() {
   const handleParseEmails = async () => {
     resetProgress(); // Reset progress before starting
 
-    // Define progress steps that extend to match actual processing time (120+ seconds)
+    // Estimate processing time based on current unread email count
+    const emailCount = unreadCount || 1;
+    const baseTimePerEmail = 2000; // 2 seconds per email for AI processing
+    const estimatedProcessingTime = Math.max(15000, emailCount * baseTimePerEmail); // Minimum 15 seconds
+
+    // Define progress steps that scale with email count
     const progressSteps = [
-      { id: 'connecting', label: 'Connecting to email server...', duration: 5000 },
-      { id: 'fetching', label: 'Fetching unread emails...', duration: 8000 },
-      { id: 'extracting', label: 'Extracting company information from email content...', duration: 25000 },
-      { id: 'analyzing', label: 'Analyzing company credibility with OpenAI (1/3)...', duration: 30000 },
-      { id: 'processing', label: 'Processing financial data and market analysis (2/3)...', duration: 25000 },
-      { id: 'classifying', label: 'Classifying email intent and generating summaries (3/3)...', duration: 20000 },
-      { id: 'compiling', label: 'Compiling results and preparing response...', duration: 12000 },
-      { id: 'finalizing', label: 'Finalizing analysis and loading data...', duration: 10000 }
+      { id: 'connecting', label: 'Connecting to email server...', duration: 3000 },
+      { id: 'fetching', label: 'Fetching unread emails...', duration: 4000 },
+      { id: 'extracting', label: `Extracting company information from ${emailCount} emails...`, duration: Math.max(8000, emailCount * 200) },
+      { id: 'analyzing', label: 'Analyzing company credibility with OpenAI...', duration: estimatedProcessingTime * 0.4 },
+      { id: 'processing', label: 'Processing financial data and market analysis...', duration: estimatedProcessingTime * 0.3 },
+      { id: 'classifying', label: 'Classifying email intent and generating summaries...', duration: estimatedProcessingTime * 0.2 },
+      { id: 'finalizing', label: 'Finalizing analysis and loading data...', duration: estimatedProcessingTime * 0.1 }
     ];
 
     try {
