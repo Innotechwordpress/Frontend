@@ -553,33 +553,44 @@ async def process_emails_with_context(emails: list, domain_context: str = "") ->
                 # Calculate relevancy score using the dedicated service only if domain context is provided
                 if domain_context and domain_context.strip():
                     try:
+                        print(f"🔥 CALCULATING RELEVANCY for {company_name}")
                         relevancy_result = await calculate_relevancy_score(
                             email_content=email,
                             company_info=company_name,
                             domain_context=domain_context,
                             openai_api_key=os.getenv("OPENAI_API_KEY")
                         )
-                        relevancy_score = relevancy_result.get('relevancy_score', 50) / 100.0  # Convert to 0-1 scale for frontend
+                        relevancy_score = relevancy_result.get('relevancy_score', 50)  # Keep as 0-100 percentage
                         relevancy_explanation = relevancy_result.get('relevancy_explanation', '')
                         relevancy_confidence = relevancy_result.get('relevancy_confidence', 0.0)
-                        logger.info(f"✅ Relevancy score calculated: {relevancy_result.get('relevancy_score', 0)}% (normalized: {relevancy_score})")
+                        
+                        print(f"🎯 FINAL RELEVANCY RESULT:")
+                        print(f"   Company: {company_name}")
+                        print(f"   Score: {relevancy_score}%")
+                        print(f"   Explanation: {relevancy_explanation[:100]}...")
+                        
+                        logger.info(f"✅ Relevancy score calculated: {relevancy_score}%")
                     except Exception as relevancy_error:
                         logger.error(f"❌ Relevancy calculation failed: {relevancy_error}")
-                        relevancy_score = 0.5  # Default neutral score
+                        relevancy_score = 50  # Default neutral score as percentage
                         relevancy_explanation = "Relevancy calculation failed"
                         relevancy_confidence = 0.0
                 else:
-                    relevancy_score = 0.5  # Default neutral score when no context provided (50%)
+                    relevancy_score = 50  # Default neutral score when no context provided (50%)
                     relevancy_explanation = "No domain context provided"
                     relevancy_confidence = 0.0
 
                 # Update the existing company_analysis with relevancy data
                 if isinstance(company_analysis, dict):
                     company_analysis.update({
-                        'relevancy_score': relevancy_score,
+                        'relevancy_score': relevancy_score,  # Already as percentage (0-100)
                         'relevancy_explanation': relevancy_explanation,
                         'relevancy_confidence': relevancy_confidence
                     })
+                    print(f"🔥 FINAL COMPANY ANALYSIS UPDATE:")
+                    print(f"   Company: {company_analysis.get('company_name', 'Unknown')}")
+                    print(f"   Relevancy: {relevancy_score}%")
+                    print(f"   Credibility: {company_analysis.get('credibility_score', 'N/A')}")
                 else:
                     # If company_analysis is not a dict, create a new structure
                     company_analysis = {

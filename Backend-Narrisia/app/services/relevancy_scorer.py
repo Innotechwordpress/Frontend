@@ -50,6 +50,9 @@ Score Guidelines:
 """
 
     try:
+        print(f"🚀 Starting relevancy calculation for company: {company_info}")
+        print(f"🎯 Domain context: {domain_context[:100]}...")
+        
         response = await client.chat.completions.create(
             model=model,
             messages=[{"role": "user", "content": prompt}],
@@ -65,14 +68,16 @@ Score Guidelines:
         # Parse JSON
         parsed = json.loads(cleaned)
         
-        # Ensure score is within bounds and convert to 0-1 scale
+        # Ensure score is within bounds
         relevancy_score = max(0, min(100, parsed.get('relevancy_score', 50)))
-        relevancy_score_normalized = relevancy_score / 100.0  # Convert to 0-1 scale
         
-        print(f"✅ Parsed relevancy score: {relevancy_score}% (normalized: {relevancy_score_normalized})")
+        print(f"✅ RELEVANCY CALCULATION SUCCESS!")
+        print(f"📊 Score: {relevancy_score}%")
+        print(f"💡 Explanation: {parsed.get('relevancy_explanation', 'No explanation')[:100]}...")
+        print(f"🎯 Confidence: {parsed.get('relevancy_confidence', 0.5)}")
         
         return {
-            "relevancy_score": relevancy_score,  # Return as 0-100 scale
+            "relevancy_score": relevancy_score,  # Return as 0-100 scale (percentage)
             "relevancy_explanation": parsed.get('relevancy_explanation', 'No explanation provided'),
             "relevancy_confidence": max(0, min(1, parsed.get('relevancy_confidence', 0.5)))
         }
