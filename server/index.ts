@@ -71,15 +71,31 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
+  // Use environment PORT or fallback to 5000
   // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  const port = Number(process.env.PORT || 5000);
+  
+  let retryDelay = 1000; // Start with 1 second
+  const maxRetryDelay = 10000; // Max 10 seconds
+  
+  const attemptListen = () => {
+    server.listen(port, "0.0.0.0", () => {
+      log(`serving on port ${port}`);
+    });
+  };
+  
+  server.on("error", (err: any) => {
+    if (err?.code === "EADDRINUSE") {
+      log(`Port ${port} is occupied, retrying bind in ${retryDelay/1000}s...`);
+      
+      setTimeout(() => {
+        retryDelay = Math.min(retryDelay * 2, maxRetryDelay);
+        attemptListen();
+      }, retryDelay);
+    } else {
+      throw err;
+    }
   });
+  
+  attemptListen();
 })();
