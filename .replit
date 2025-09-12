@@ -3,6 +3,7 @@ run = "npm run dev"
 
 [nix]
 channel = "stable-25_05"
+packages = ["bash", "cairo", "cargo", "ffmpeg-full", "freetype", "ghostscript", "glibcLocales", "gobject-introspection", "grpc", "gtk3", "libiconv", "libxcrypt", "pkg-config", "qhull", "rustc", "tcl", "tk", "xcodebuild", "zlib"]
 
 [deployment]
 run = ["sh", "-c", "npm run dev"]
@@ -10,6 +11,10 @@ run = ["sh", "-c", "npm run dev"]
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 37369
+externalPort = 3000
 
 [workflows]
 runButton = "Project"

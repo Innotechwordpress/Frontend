@@ -16,7 +16,7 @@ import { useProgressLoader } from "@/hooks/useProgressLoader";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Define API_BASE_URL here or import it if it's globally available
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ""; // Example: Use environment variable
+const API_BASE_URL = import.meta.env.VITE_PUBLIC_API_BASE_URL || ""; // Example: Use environment variable
 
 export default function Dashboard() {
   const { user, isLoading: isAuthLoading } = useAuth();
