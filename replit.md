@@ -16,12 +16,12 @@ NarrisiaAI is a comprehensive AI-powered productivity platform designed for exec
 - **Form Handling**: React Hook Form with Zod validation
 
 ### Backend Architecture
-- **Runtime**: Node.js with Express.js framework
-- **Language**: TypeScript with ES modules
-- **Session Management**: Express sessions with configurable storage
-- **Authentication**: Passport.js with local and OAuth strategies
-- **API Design**: RESTful endpoints with JSON responses
-- **Development**: TSX for TypeScript execution in development
+- **Runtime**: Python with FastAPI framework
+- **Language**: Python with Pydantic models for validation
+- **Session Management**: Starlette sessions with JWT token support
+- **Authentication**: Custom JWT authentication with Google OAuth integration
+- **API Design**: RESTful endpoints with automatic OpenAPI documentation
+- **Development**: Uvicorn with hot reload for development
 
 ### Data Storage Strategy
 The application implements a dual-database approach:
@@ -129,6 +129,7 @@ Changelog:
 - June 15, 2025. Initial setup
 - June 16, 2025. Added comprehensive .env file with database, authentication, OAuth, API keys, and application configuration
 - June 16, 2025. Added complete social media links to footer: Twitter, Instagram, and LinkedIn (all open in new tabs)
+- September 12, 2025. **MAJOR ARCHITECTURE MIGRATION**: Completely migrated from dual-backend architecture (Node.js Express + Python FastAPI) to single FastAPI backend. All authentication, payments, email processing, Google OAuth, and frontend serving now handled by FastAPI. Express server completely removed. Simplified deployment and improved maintainability.
 
 ## User Preferences
 
