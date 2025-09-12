@@ -50,6 +50,12 @@ app.include_router(research.router, prefix="/research", tags=["research"])
 app.include_router(report.router, prefix="/report", tags=["report"])
 app.include_router(orchestrate.router, prefix="/orchestrate", tags=["orchestrate"])
 
+# API health check endpoint
+@app.head("/api")
+@app.get("/api")
+async def api_health():
+    return {"status": "ok", "message": "FastAPI backend is running"}
+
 # Setup custom logging
 setup_logging()
 
@@ -85,6 +91,10 @@ class UserProfile(BaseModel):
     industry: Optional[str] = None
     goals: Optional[list] = None
 
+class PaymentIntentRequest(BaseModel):
+    amount: float
+    plan: str = "pro"
+
 # Helper functions
 def generate_token(user_id: str) -> str:
     return jwt.encode(
@@ -114,6 +124,32 @@ def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
         if "user" in session:
             return session["user"]
 
+    return None
+
+def verify_jwt_token(token: str) -> Optional[Dict[str, Any]]:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        user_id = payload.get("userId")
+        if user_id and user_id in users:
+            return users[user_id]
+        return None
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+def get_current_user_jwt(request: Request) -> Optional[Dict[str, Any]]:
+    # Check for JWT in Authorization header
+    auth_header = request.headers.get("authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        return verify_jwt_token(token)
+    
+    # Check for JWT in cookie
+    token = request.cookies.get("access_token")
+    if token:
+        return verify_jwt_token(token)
+    
     return None
 
 # Auth endpoints
@@ -157,7 +193,7 @@ async def signup(data: SignupData):
     }
 
 @app.post("/api/auth/login")
-async def login(data: LoginData, request: Request):
+async def login(data: LoginData, request: Request, response: Response):
     # Find user
     user = None
     for u in users.values():
@@ -168,7 +204,20 @@ async def login(data: LoginData, request: Request):
     if not user or not verify_password(data.password, user["password"]):
         raise HTTPException(status_code=400, detail="Invalid email or password")
 
-    # Set session
+    # Generate JWT token
+    token = generate_token(user["id"])
+    
+    # Set JWT in httpOnly cookie
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        max_age=24 * 60 * 60 * 7,  # 7 days
+        samesite="lax",
+        secure=False  # Set to True in production with HTTPS
+    )
+
+    # Set session for backwards compatibility
     request.session["userId"] = user["id"]
     request.session["user"] = user
 
@@ -177,7 +226,8 @@ async def login(data: LoginData, request: Request):
 
     return {
         "message": "Login successful",
-        "user": user_response
+        "user": user_response,
+        "token": token
     }
 
 @app.get("/api/auth/google")
@@ -306,9 +356,31 @@ async def update_profile(profile_data: UserProfile, request: Request):
     return user_response
 
 @app.post("/api/auth/logout")
-async def logout(request: Request):
+async def logout(request: Request, response: Response):
+    # Clear session
     request.session.clear()
+    # Clear JWT cookie
+    response.delete_cookie("access_token")
     return {"message": "Logged out successfully"}
+
+@app.get("/api/auth/me")
+async def get_me(request: Request):
+    # Try JWT first, then session
+    user = get_current_user_jwt(request) or get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    user_response = {k: v for k, v in user.items() if k != "password"}
+    return {"user": user_response}
+
+@app.get("/api/auth/get-token")
+async def get_access_token(request: Request):
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    access_token = request.session.get("accessToken")
+    return {"accessToken": access_token}
 
 @app.get("/api/debug/session")
 async def debug_session(request: Request):
@@ -421,18 +493,18 @@ async def start_parsing(request: Request):
 
 # Stripe payment endpoints
 @app.post("/api/create-payment-intent")
-async def create_payment_intent(request: Request, amount: float, plan: str = "pro"):
+async def create_payment_intent(payment_data: PaymentIntentRequest, request: Request):
     user = get_current_user(request)
     if not user:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
     try:
         payment_intent = stripe.PaymentIntent.create(
-            amount=int(amount * 100),  # Convert to cents
+            amount=int(payment_data.amount * 100),  # Convert to cents
             currency="usd",
             metadata={
                 "userId": user["id"],
-                "plan": plan
+                "plan": payment_data.plan
             }
         )
         return {"clientSecret": payment_intent.client_secret}
@@ -467,6 +539,90 @@ async def create_setup_intent(request: Request):
         return {"clientSecret": setup_intent.client_secret}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating setup intent: {str(e)}")
+
+@app.post("/api/create-subscription")
+async def create_subscription(request: Request):
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        data = await request.json()
+        price_id = data.get("priceId")
+        payment_method_id = data.get("paymentMethodId")
+        
+        if not price_id or not payment_method_id:
+            raise HTTPException(status_code=400, detail="Price ID and Payment Method ID are required")
+
+        # Create or get customer
+        customer_id = user.get("stripeCustomerId")
+        if not customer_id:
+            customer = stripe.Customer.create(
+                email=user["email"],
+                name=f"{user['firstName']} {user['lastName']}",
+                metadata={"userId": user["id"]}
+            )
+            customer_id = customer.id
+            user["stripeCustomerId"] = customer_id
+            users[user["id"]] = user
+
+        # Attach payment method to customer
+        stripe.PaymentMethod.attach(payment_method_id, customer=customer_id)
+
+        # Create subscription
+        subscription = stripe.Subscription.create(
+            customer=customer_id,
+            items=[{"price": price_id}],
+            default_payment_method=payment_method_id,
+            expand=["latest_invoice.payment_intent"]
+        )
+
+        return {
+            "subscriptionId": subscription.id,
+            "status": subscription.status,
+            "clientSecret": subscription.latest_invoice.payment_intent.client_secret if subscription.latest_invoice.payment_intent else None
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating subscription: {str(e)}")
+
+@app.get("/api/emails/weekly-count")
+async def get_weekly_email_count(request: Request):
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    access_token = request.session.get("accessToken")
+    if not access_token:
+        return {
+            "weekly_count": 0,
+            "message": "OAuth token required. Please reconnect your Google account."
+        }
+
+    try:
+        # Use the existing fetch endpoint
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"http://localhost:5000/fetch/weekly-count",
+                headers={"oauth-token": access_token}
+            )
+
+            if response.status_code == 200:
+                count_data = response.json()
+                return {
+                    "weekly_count": count_data.get("weekly_count", 0),
+                    "message": count_data.get("message", "Weekly count retrieved")
+                }
+            else:
+                return {
+                    "weekly_count": 0,
+                    "message": "Failed to fetch weekly count"
+                }
+    except Exception as e:
+        print(f"Error fetching weekly count: {e}")
+        return {
+            "weekly_count": 0,
+            "message": "Network error while fetching emails"
+        }
 
 # Serve static files 
 import os
